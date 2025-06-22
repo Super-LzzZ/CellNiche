@@ -1,0 +1,48 @@
+
+# Data & preprocessing
+data_path: "/share/home/liangzhongming/phd_code/530/MAGI_ST/data/spleen/"
+dataset: "BALBc_1_expr_gene"
+phenoLabels: "cell_type"
+nicheLabels: "Compartment" # None
+embedding_type: "pheno_expr"
+hvg: False
+
+# Graph construction
+k_neighborhood: null
+radius: 80.0
+
+# Sampling & training
+batch_size: 1024
+epochs: null
+max_steps: 80
+lr: 0.001
+weight_decay: 0.0
+dropout: 0.0
+
+# Model architecture
+hidden_channels: [512, 256]
+size: [10, 10]
+projection: "" # [128, 64]
+decoder: "" # [64]
+
+# Contrastive strategy
+tau: 0.9
+negative_slope: 0.5
+strategy: "freq"
+use_weight: False
+pos_weight_strategy: "inverse_sim"
+neg_weight_strategy: "inverse_sim"
+
+# Random‐walk
+wt: 20
+wl: 4
+p: 0.25
+q: 4.0
+
+# Misc
+seed: 2424
+save: False
+metrics: true
+refine: False
+save_path: "/share/home/liangzhongming/phd_code/530/MAGI_ST/results/cortex"
+verbose: true
