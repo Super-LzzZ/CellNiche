@@ -26,8 +26,7 @@ pip install .
 - numpy ≥ 1.22  
 - scipy ≥ 1.10  
 - pandas ≥ 2.0  
-- networkx ≥ 3.1  
-- node2vec ≥ 0.5.0  
+- networkx ≥ 3.1   
 - tqdm ≥ 4.67.1  
 
 You can install most dependencies with:
@@ -35,10 +34,8 @@ You can install most dependencies with:
 ```bash
 pip install torch torchvision torchaudio
 pip install torch-geometric torch-scatter torch-sparse torch-cluster torch-spline-conv
-pip install scanpy anndata scikit-learn numpy scipy pandas networkx node2vec tqdm
+pip install scanpy anndata scikit-learn numpy scipy pandas networkx tqdm
 ```
-
-
 
 
 ## Getting Started
@@ -56,36 +53,52 @@ cellniche.main(opts)
 
 Example YAML snippet (configs/example.yaml):
 ```yaml
-# Data settings
-data_path: /path/to/data
-dataset: my_sample
-phenoLabels: cell_type
-nicheLabels: region_annotation  # or null
+# Data & preprocessing
+data_path: "path/data/cortex/"
+dataset: "osmFISH_SScortex"
+phenoLabels: "ClusterName"
+nicheLabels: "Region" # None
+embedding_type: "pheno_expr"
+hvg: False
 
-# Embedding settings
-embedding_type: pheno_expr
-radius: 300
-k_neighborhood: 20
-hvg: true
+# Graph construction
+k_neighborhood: null
+radius: 1000.0
 
-# Model settings
-hidden_channels: [512, 256]
-projection: [128, 64]
-decoder_hidden: [64]
-tau: 0.9
-
-# Training settings
-epochs: 10
-batchsize: 1024
+# Sampling & training
+batch_size: 2048
+epochs: null
+max_steps: 20
 lr: 0.001
-wd: 0.0
-max_steps: 100
-max_duration: 60  # in minutes
+weight_decay: 0.0
+dropout: 0.0
+
+# Model architecture
+hidden_channels: [512, 256]
+size: [10, 10]
+projection: "" # [128, 64]
+decoder: "" # [64]
+
+# Contrastive strategy
+tau: 0.9
+negative_slope: 0.5
+strategy: "freq"
+
+use_weight: False
+pos_weight_strategy: "inverse_sim"
+neg_weight_strategy: "inverse_sim"
+
+# Random‐walk
+wt: 30
+wl: 5
+p: 0.25
+q: 4.0
+
+# Misc
+seed: 3207
+save: False
+metrics: true
+refine: False
+save_path: "path/results/cortex"
+verbose: true
 ```
-
-
-## Requirements
-
-## Requirements
-
-## Requirements
