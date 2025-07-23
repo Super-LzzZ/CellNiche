@@ -39,6 +39,23 @@ pip install torch-geometric torch-scatter torch-sparse torch-cluster torch-splin
 pip install scanpy anndata scikit-learn numpy scipy pandas networkx tqdm
 ```
 
+A successful example
+```bash
+conda create -n cellniche python=3.9
+conda activate cellniche
+pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2
+pip install torch_cluster-1.6.3+pt20cu117-cp39-cp39-linux_x86_64.whl
+pip install torch_scatter-2.1.2+pt20cu117-cp39-cp39-linux_x86_64.whl
+pip install torch_sparse-0.6.18+pt20cu117-cp39-cp39-linux_x86_64.whl
+pip install torch_spline_conv-1.2.2+pt20cu117-cp39-cp39-linux_x86_64.whl
+pip install torch-geometric==2.6.1
+pip install CellNiche
+
+pip install pyyaml
+...
+```
+
+
 ## Tutorials
 Coming soon
 
@@ -54,11 +71,8 @@ python ./cellniche/main.py --config ./configs/xxx.yaml
 import cellniche
 
 # Parse arguments from a YAML config
-opts = cellniche.parse_args([
-    "--config", "configs/xxx.yaml"
-])
 # Run training/inference
-cellniche.main(opts)
+cellniche.main(["--config", "./configs/xxx.yaml"])
 
 ```
 

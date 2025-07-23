@@ -4,7 +4,7 @@ import yaml
 
 from .trainer import run
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description="Entry point for CellNiche training & inference"
     )
@@ -14,11 +14,11 @@ def parse_args():
         required=True,
         help="Path to YAML config file",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
-def main():
+def main(argv=None):
     # 1) Load config file
-    args = parse_args()
+    args = parse_args(argv)
     with open(args.config, "r") as f:
         cfg = yaml.safe_load(f)
 

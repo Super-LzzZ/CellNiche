@@ -1,12 +1,45 @@
+from importlib import import_module
+from types import ModuleType
+from typing import Dict, Any
 
+__version__ = "0.1.4"
+__author__  = "ZMLiang <lzzzmmgpt@gmail.com>"
 
-__version__ = "0.1.3"
-__author__ = "ZMLiang <lzzzmmgpt@gmail.com>"
+_EXPORTS = {
+    # ── CLI (functions) ───────────────────────────────────────
+    "main"          : (".main", "main"),
+    "parse_args"    : (".main", "parse_args"),
 
-from .main import main
-from .trainer import run 
-from .model import Model, Encoder
+    # ── Core model (classes) ─────────────────────────────────
+    "Model"         : (".model", "Model"),
+    "Encoder"       : (".model", "Encoder"),
 
+    # ── Training (function + class) ──────────────────────────
+    "run"           : (".trainer", "run"),
+    "Trainer"       : (".trainer", "Trainer"),
 
-# from cellniche import *
-__all__ = ["main", "run", "Model", "Encoder"]
+    # ── Sampler (class) ──────────────────────────────────────
+    "Sampler"       : (".sampler", "NeighborSampler"),
+
+    # ── Utils (function) ─────────────────────────────────────
+    "clustering_st" : (".utils", "clustering_st"),
+}
+
+_cache: Dict[str, Any] = {}
+
+def __getattr__(name: str) -> Any:
+    if name in _cache:
+        return _cache[name]
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    module_path, attr_name = _EXPORTS[name]
+    module: ModuleType = import_module(module_path, __package__)
+    obj = getattr(module, attr_name)
+    _cache[name] = obj
+    return obj
+
+def __dir__() -> list[str]:
+    return sorted(list(globals().keys()) + list(_EXPORTS.keys()))
+
+__all__ = list(_EXPORTS.keys())
