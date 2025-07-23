@@ -42,11 +42,12 @@ pip install scanpy anndata scikit-learn numpy scipy pandas networkx tqdm
 
 
 ## Getting Started
+### bash
 ```bash
 python ./cellniche/main.py --config ./configs/xxx.yaml
 
 ```
-
+### python
 ```python
 import CellNiche
 
