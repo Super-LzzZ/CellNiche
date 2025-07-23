@@ -44,7 +44,7 @@ Coming soon
 
 
 ## Getting Started
-### bash
+### bash(recommend)
 ```bash
 python ./cellniche/main.py --config ./configs/xxx.yaml
 
