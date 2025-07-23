@@ -4,8 +4,10 @@ import numpy as np
 import pandas as pd
 import torch
 import scipy
+import logging
 import torch.nn.functional as F
 import scanpy as sc
+from natsort import natsorted
 from scipy.sparse import coo_matrix
 from sklearn.preprocessing import LabelEncoder
 from sklearn.neighbors import NearestNeighbors
@@ -21,124 +23,6 @@ from torch_sparse import SparseTensor
 from torch_geometric.utils import to_undirected
 
 from typing import Optional, Union, Any, Tuple, List
-'''
-def load_data(data_path, dataset, phenoLabels, nicheLabels, embedding_type, radius, k_neighborhood, hvg):
-    """
-    Load AnnData from .h5ad, build node features and edge index.
-
-    Parameters
-    ----------
-    data_path : str
-        Directory containing the .h5ad files.
-    dataset : str
-        Filename (without extension) to load.
-    labels: str
-        labels.
-    embedding_type : str
-        One of 'pheno_expr', 'pheno', 'expr'.
-    radius : float or None
-        Radius threshold for creating radius graph.
-    k_neighborhood : int
-        Number of neighbors for kNN graph if radius is None.
-    hvg : bool
-        Whether to select highly variable genes (for expr or pheno_expr).
-
-    Returns
-    -------
-    x : torch.FloatTensor
-        Node feature matrix.
-    edge_index : LongTensor[2, E]
-        Edge indices for the graph.
-    y : ndarray[N]
-        True labels (encoded as integers).
-    adata : AnnData
-        Original AnnData object (with .obs and .obsm).
-    n_classes : int
-        Number of unique classes in labels.
-    expr : torch.FloatTensor or None
-        Gene expression matrix (only for pheno_expr or expr).
-    """
-    # Load AnnData and copy
-    file_path = os.path.join(data_path, f"{dataset}.h5ad")
-    adata = sc.read_h5ad(file_path).copy()
-
-    # Build phenotype one-hot encoding
-    phenoTypes = adata.obs[labels].astype(str)
-    le = LabelEncoder().fit(phenoTypes)
-    ct_idx = le.transform(phenoTypes)
-    onehot = torch.nn.functional.one_hot(
-        torch.from_numpy(ct_idx), num_classes=len(le.classes_)
-    ).float()
-
-    # Build graph edges
-    if "edgeList" in adata.uns:
-        edge = torch.from_numpy(np.array(adata.uns["edgeList"])).long()
-        edge = to_undirected(edge)
-    else:
-        if "spatial" in adata.obsm and adata.obsm["spatial"] is not None:
-            coords = adata.obsm["spatial"]
-        else:
-            coords = adata.obs[["x", "y"]].to_numpy()
-
-        if radius is not None:
-            nbrs = NearestNeighbors(radius=radius).fit(coords)
-            _, idxs = nbrs.radius_neighbors(coords)
-            rows = np.concatenate([np.full(len(n), i) for i, n in enumerate(idxs)])
-            cols = np.concatenate(idxs)
-        else:
-            nbrs = NearestNeighbors(n_neighbors=k_neighborhood + 1).fit(coords)
-            _, idxs = nbrs.kneighbors(coords)
-            rows = np.repeat(np.arange(coords.shape[0]), k_neighborhood)
-            cols = idxs[:, 1:].flatten()
-
-        mat = coo_matrix(
-            (np.ones_like(rows), (rows, cols)),
-            shape=(coords.shape[0], coords.shape[0]),
-        )
-        mat = mat + mat.T  # make undirected
-        edge = torch.from_numpy(np.vstack(mat.nonzero()).astype(np.int64))
-
-    # Encode true labels
-    if args.nicheLabels is not null
-        comp = adata.obs["args.nicheLabels"].astype(str)
-        y = LabelEncoder().fit_transform(comp)
-        n_classes = len(np.unique(y))
-    else:
-
-    # Prepare expression matrix if needed
-    expr = None
-    if embedding_type in ("pheno_expr", "expr"):
-        if hvg:
-            sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=512)
-            sc.pp.normalize_total(adata, target_sum=1e4)
-            sc.pp.log1p(adata)
-            adata = adata[:, adata.var["highly_variable"]]
-        mat = adata.X
-        if scipy.sparse.issparse(mat):
-            expr = torch.from_numpy(mat.toarray()).float()
-        else:
-            expr = torch.from_numpy(np.array(mat)).float()
-
-    # Return according to embedding type
-    if embedding_type == "pheno_expr":
-        return onehot, edge, y, adata, n_classes, expr
-    elif embedding_type == "pheno":
-        return onehot, edge, y, adata, n_classes, None
-    elif embedding_type == "expr":
-        return expr, edge, y, adata, n_classes, None
-    else:
-        raise ValueError(f"Unknown embedding_type: {embedding_type}")
-'''
-
-import os
-import numpy as np
-import torch
-import scanpy as sc
-from scipy.sparse import coo_matrix
-from sklearn.preprocessing import LabelEncoder
-from torch_geometric.utils import to_undirected
-from torch_sparse import SparseTensor
-from typing import Optional, Union, Tuple, Any
 
 def load_data(
     data_path: str,
@@ -191,9 +75,8 @@ def load_data(
     else:
         # choose coords
         if "spatial" in adata.obsm and adata.obsm["spatial"] is not None:
-            coords = adata.obsm["spatial"]
-                        # coords = adata.obsm["spatial"]
-            coords = adata.obs[["x", "y"]].to_numpy() # s[leen
+            # coords = adata.obsm["spatial"]
+            coords = adata.obs[["x", "y"]].to_numpy() # spleen
         else:
             coords = adata.obs[["x", "y"]].to_numpy()
 
@@ -213,11 +96,10 @@ def load_data(
         mat = mat + mat.T  # make undirected
         edge_index = torch.from_numpy(np.vstack(mat.nonzero()).astype(np.int64))
         
-                # 计算每个节点的邻居数量
         neighbors_count = np.array([len(neighbors) for neighbors in idxs])
-        # 计算每个节点的平均邻居数量
         average_neighbors = neighbors_count.mean()
-        print(f"================ Average number of neighbors per node: {average_neighbors} ================")
+        logging.info(f"Average number of neighbors per node: {average_neighbors}")
+        # print(f"================ Average number of neighbors per node: {average_neighbors} ================")
 
     # 4) Encode true labels from nicheLabels if provided
     if nicheLabels is not None and nicheLabels in adata.obs:
@@ -247,17 +129,28 @@ def load_data(
             arr = np.array(mat)
         expr = torch.from_numpy(arr).float()
 
+    # logging.info(
+    #     f"Loaded {dataset}: " f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, {onehot.shape[0].shape[-1]} features"
+    # )
+    
     # 6) Return according to embedding type
     if embedding_type == "pheno_expr":
+        logging.info(
+            f"Loaded {dataset}: " f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, {onehot.shape[-1]} features"
+        )
         return torch.tensor(onehot, dtype=torch.float), edge_index, y, adata, n_classes, torch.tensor(expr, dtype=torch.float)
     elif embedding_type == "pheno":
+        logging.info(
+            f"Loaded {dataset}: " f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, {onehot.shape[-1]} features"
+        )
         return torch.tensor(onehot, dtype=torch.float), edge_index, y, adata, n_classes, None
     elif embedding_type == "expr":
+        logging.info(
+            f"Loaded {dataset}: " f"{expr.shape[0]} nodes, {edge_index.shape[1]} edges, {expr.shape[-1]} features"
+        )
         return torch.tensor(expr, dtype=torch.float), edge_index, y, adata, n_classes, None
     else:
         raise ValueError(f"Unknown embedding_type: {embedding_type}")
-
-
 
 def setup_seed(seed: int) -> None:
     """
@@ -272,7 +165,6 @@ def setup_seed(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
     # torch.backends.cudnn.deterministic = True
     # torch.backends.cudnn.benchmark = False
-
 
 def create_sparse_tensor_from_edges(
     rows: list[int],
@@ -299,7 +191,6 @@ def create_sparse_tensor_from_edges(
         value=vals,
         sparse_sizes=sparse_size,
     )
-
 
 def sparse_intersection_and_union(
     adj1: SparseTensor,
@@ -334,10 +225,8 @@ def sparse_intersection_and_union(
     rows, cols = zip(*common)
     return create_sparse_tensor_from_edges(rows, cols, adj1.sparse_sizes(), device)
 
-
 def get_positivePairs(
     subAdj: SparseTensor,
-    # features: torch.Tensor | None = None,
     features: Optional[torch.Tensor] = None,
     strategy: str = "freq",
 ) -> SparseTensor:
@@ -381,41 +270,47 @@ def get_positivePairs(
     # AND / OR combination
     return sparse_intersection_and_union(freq_adj, sim_based, strategy)
 
-
 def match_labels(true_labels, predicted_labels, n_classes):
     from scipy.optimize import linear_sum_assignment as linear_assignment
 
-    """
-    通过匈牙利算法进行标签对齐，将预测标签与真实标签进行最优映射。
-    """
-    # 创建真实标签和预测标签的计数矩阵
     cost_matrix = np.zeros((n_classes, n_classes))
 
     for i in range(n_classes):
         for j in range(n_classes):
             cost_matrix[i, j] = np.sum((true_labels == i) & (predicted_labels == j))
 
-    # 使用匈牙利算法进行标签匹配
-    row_ind, col_ind = linear_assignment(-cost_matrix)  # 使用 -cost_matrix 进行最大化匹配
+    row_ind, col_ind = linear_assignment(-cost_matrix)
 
-    # 根据最佳匹配将预测标签转换为真实标签
     new_labels = np.copy(predicted_labels)
-    for i, j in zip(row_ind, col_ind):  # 使用 zip 同时遍历 row_ind 和 col_ind
-        # 将预测标签 j 转换为真实标签 i
+    for i, j in zip(row_ind, col_ind):
         new_labels[predicted_labels == j] = i
-
     return new_labels
 
+def refine_spatial_domains(y_pred, coord, n_neighbors=6):
+    nbrs = NearestNeighbors(n_neighbors=n_neighbors + 1).fit(coord)
+    distances, indices = nbrs.kneighbors(coord)
+    indices = indices[:, 1:]
 
-# def clustering_st(
-#     adata,
-#     # features: torch.Tensor | np.ndarray,
-#     features: Optional[Union[torch.Tensor, np.ndarray]] = None,
-#     true_labels: Optional[np.ndarray] = None,
-#     n_clusters: int,
-#     # true_labels: np.ndarray | None = None,
-#     refine: If True, apply spatial refinement to each clustering result.
-# ) -> Tuple[Any, dict]:
+    y_refined = pd.Series(index=y_pred.index, dtype='object')
+
+    for i in range(y_pred.shape[0]):
+        y_pred_count = y_pred[indices[i, :]].value_counts()
+
+        if y_pred[i] in y_pred_count.index:
+            if (y_pred_count.loc[y_pred[i]] < n_neighbors / 2) and (y_pred_count.max() > n_neighbors / 2):
+                y_refined[i] = y_pred_count.idxmax()
+            else:
+                # y_refined[i] = y_pred[i] # waring
+                y_refined.iloc[i] = y_pred[i]
+        else:
+            y_refined.iloc[i] = y_pred[i]
+
+    y_refined = pd.Categorical(
+        values=y_refined.astype('U'),
+        categories=natsorted(map(str, y_refined.unique())),
+    )
+    return y_refined
+
 def clustering_st(
     adata: Any,
     n_clusters: int,
@@ -436,13 +331,11 @@ def clustering_st(
         adata (AnnData): Updated with 'kmeans' clusters.
         metrics (dict): Cluster evaluation metrics.
     """
-    # Convert to numpy
+    # 1) Convert to numpy
     if torch.is_tensor(features):
         feats = features.cpu().numpy()
     else:
         feats = features
-        
-        
     # 2) Run KMeans
     km = KMeans(n_clusters=n_clusters, random_state=0)
     raw_labels = km.fit_predict(feats).astype(int)
@@ -470,18 +363,14 @@ def clustering_st(
         for method, labels in clustering_results.items():
             # align predicted → true
             aligned = match_labels(true_labels, labels, n_clusters)
-            
-            # print(f"true_labels: {true_labels}")
-            # print(f"labels: {labels}")
-            # print(f"aligned: {aligned}")
-            
+
             acc = (aligned == true_labels).mean()
             nmi = normalized_mutual_info_score(true_labels, aligned)
             ari = adjusted_rand_score(true_labels, aligned)
             ami = adjusted_mutual_info_score(true_labels, aligned)
             f1m = f1_score(true_labels, aligned, average='macro')
             f1i = f1_score(true_labels, aligned, average='micro')
-            # sil = silhouette_score(feats, aligned)
+            sil = silhouette_score(feats, aligned)
 
             metrics_results[method] = {
                 'Acc': acc,
@@ -490,7 +379,7 @@ def clustering_st(
                 'ARI': ari,
                 'F1 Macro': f1m,
                 'F1 Micro': f1i,
-                # 'Silhouette': sil,
+                'Silhouette': sil,
             }
 
     return adata, metrics_results    

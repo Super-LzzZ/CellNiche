@@ -36,8 +36,9 @@ class Adj(NamedTuple):
 
 class NeighborSampler(torch.utils.data.DataLoader):
     r"""
-    This code adapted from the pytorch geometric
+    This code adapted from
     (https://github.com/pyg-team/pytorch_geometric/blob/master/torch_geometric/loader/neighbor_sampler.py).
+    (https://github.com/EdisonLeeeee/MAGI/blob/master/magi/neighbor_sampler.py).
     """
     def __init__(self,
                  edge_index: Union[Tensor, SparseTensor],
@@ -117,9 +118,7 @@ class NeighborSampler(torch.utils.data.DataLoader):
         super().__init__(
             node_idx.view(-1).tolist(), collate_fn=self.sample, drop_last=self.drop_last, **kwargs)
 
-
-
-    def _get_pos_neg_batches(self, random_nodes, biased_random_walk):
+    def _get_pos_neg_batch(self, random_nodes, biased_random_walk):
         random_nodes_count = random_nodes.shape[0]
         rowptr, col, _ = self.adj.csr()
 
@@ -145,7 +144,7 @@ class NeighborSampler(torch.utils.data.DataLoader):
         # -------------------------------
         batch_size = batch.shape[0]
         if biased_random_walk == True:
-            walks_file = os.path.join("/tmp/cellNiche_c/results/spleen/v2/", "node2vec_walks.pkl")
+            walks_file = os.path.join("./results/walsk/", "node2vec_walks.pkl")
             if os.path.exists(walks_file):
                 print(f"Found precomputed walks at {walks_file}, loading...")
                 with open(walks_file, "rb") as f:
@@ -160,7 +159,7 @@ class NeighborSampler(torch.utils.data.DataLoader):
                 print(f"Walks saved to {walks_file}")
 
             node2vec_walks = [list(map(int, walk)) for walk in walks]
-            rw2 = torch.tensor(node2vec_walks, dtype=torch.long)  # 单次张量创建
+            rw2 = torch.tensor(node2vec_walks, dtype=torch.long)
             batch_set = set(batch.tolist())
             mask = []
             for i in range(rw2.size(0)):
@@ -170,16 +169,13 @@ class NeighborSampler(torch.utils.data.DataLoader):
                 else:
                     mask.append(False)
             mask = torch.tensor(mask, dtype=torch.bool)
-
             rw2 = rw2[mask]
-            # rw2 = rw2.t().reshape(-1, batch_size).t()
+
         else:
             batch_repeat = batch.repeat(self.wt)
             rw2 = self.adj.random_walk(batch_repeat, self.wl)[:, 1:]
-            # print(f"rw2.shape: {rw2.shape}")
             if not isinstance(rw2, torch.Tensor):
                 rw2 = rw2[0]
-            # rw2 = rw2.t().reshape(-1, batch_size).t()
 
         rw2 = rw2.t().reshape(-1, batch_size).t()
         row, col, val = [], [], []
@@ -200,8 +196,6 @@ class NeighborSampler(torch.utils.data.DataLoader):
                             sparse_sizes=(len(unique_nodes), len(unique_nodes)))
 
         adj_batch, _ = adj_.saint_subgraph(idx)
-
-        # adj_batch = adj_batch.set_diag(0.)  # bug
         adj_batch_sp = adj_batch.to_scipy(layout='coo')
         adj_batch_sp.setdiag([0] * idx.shape[0])
         adj_batch = SparseTensor.from_scipy(adj_batch_sp)
@@ -212,13 +206,12 @@ class NeighborSampler(torch.utils.data.DataLoader):
                 sim_row.append(r)
                 sim_col.append(c)
 
-                # 从 sim_adj 中提取对应的相似度值
                 adj_row, adj_col, adj_val = self.sim_adj.storage.row(), self.sim_adj.storage.col(), self.sim_adj.storage.value()
                 mask = (adj_row == r) & (adj_col == c)
                 if mask.any():
-                    similarity = adj_val[mask].item()  # 提取相似度
+                    similarity = adj_val[mask].item()
                 else:
-                    similarity = 0.0  # 默认值为 0
+                    similarity = 0.0 
 
                 sim_val.append(similarity)
 
@@ -240,9 +233,9 @@ class NeighborSampler(torch.utils.data.DataLoader):
         adj_batch = None
         sim_adj_batch = None
         if self.sim_adj is not None:
-            batch, adj_batch, sim_adj_batch = self._get_pos_neg_batches(batch, biased_random_walk=self.biased_random_walk)
+            batch, adj_batch, sim_adj_batch = self._get_pos_neg_batch(batch, biased_random_walk=self.biased_random_walk)
         else:
-            batch, adj_batch = self._get_pos_neg_batches(batch, biased_random_walk=self.biased_random_walk)
+            batch, adj_batch = self._get_pos_neg_batch(batch, biased_random_walk=self.biased_random_walk)
         batch_size: int = len(batch)
 
         adjs = []
@@ -265,7 +258,6 @@ class NeighborSampler(torch.utils.data.DataLoader):
         out = (batch_size, n_id, adjs)
         out = self.transform(*out) if self.transform is not None else out
 
-        # print(f"adj_batch: {adj_batch}")
         if sim_adj_batch is not None:
             return out, adj_batch, sim_adj_batch, batch
         else:

@@ -1,6 +1,6 @@
 
 # Data & preprocessing
-data_path: "/share/home/liangzhongming/phd_code/530/MAGI_ST/results/cortex/"
+data_path: "/share/home/liangzhongming/phd_code/530/CellNiche/data/"
 dataset: "osmFISH_SScortex"
 phenoLabels: "ClusterName"
 nicheLabels: "Region" # None
@@ -12,7 +12,7 @@ k_neighborhood: null
 radius: 1000.0
 
 # Sampling & training
-batch_size: 2048
+batch_size: 1024
 epochs: null
 max_steps: 20
 lr: 0.001
@@ -44,7 +44,7 @@ seed: 3207
 save: False
 metrics: true
 refine: False
-save_path: "/share/home/liangzhongming/phd_code/530/MAGI_ST/results/cortex"
+save_path: "/share/home/liangzhongming/phd_code/530/CellNiche/results"
 verbose: true
 
 # Clustering metrics: {'kmeans': {'Acc': 0.7554429429429429, 'NMI': 0.6721780252385171, 'AMI': 0.6704580393018369, 'ARI': 0.6600704566112201, 'F1 Macro': 0.6564564262718956, 'F1 Micro': 0.7554429429429429}}

@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import BatchNorm1d, LeakyReLU, PReLU
 from torch_geometric.nn import SAGEConv
-
 from typing import Optional, List, Tuple
 
 
@@ -109,7 +108,7 @@ class Encoder(nn.Module):
         in_channels: int,
         hidden_channels: list[int],
         conv_layer=SAGEConv,
-        dropout: float = 0.5,
+        dropout: float = 0.0,
         negative_slope: float = 0.5,
     ):
         super().__init__()
@@ -135,8 +134,6 @@ class Encoder(nn.Module):
         x: torch.Tensor,
         adjs: Optional[List[Tuple[torch.Tensor, Optional[torch.Tensor], Tuple[int,int]]]] = None,
         edge_index: Optional[torch.Tensor] = None,
-        # adjs: list[tuple] | None = None,
-        # edge_index: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass through GNN layers.
@@ -185,8 +182,6 @@ class Model(nn.Module):
     def __init__(
         self,
         encoder: Encoder,
-        # decoder_hidden: list[int] | None = None,
-        # project_hidden: list[int] | None = None,
         decoder_hidden: Optional[List[int]] = None,
         project_hidden: Optional[List[int]] = None,
         tau: float = 0.5,
@@ -237,8 +232,6 @@ class Model(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        # adjs: list[Tuple] | None = None,
-        # edge_index: torch.Tensor | None = None,
         adjs: Optional[List[Tuple[torch.Tensor, Optional[torch.Tensor], Tuple[int, int]]]] = None,
         edge_index: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -260,8 +253,6 @@ class Model(nn.Module):
         z: torch.Tensor,
         pos_mask: torch.sparse.FloatTensor,
         proj_z: torch.Tensor,
-        # rec: torch.Tensor | None = None,
-        # target: torch.Tensor | None = None,
         rec: Optional[torch.Tensor] = None,
         target: Optional[torch.Tensor] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -277,12 +268,11 @@ class Model(nn.Module):
         Returns:
             contrast_loss, recon_loss (Tensors)
         """
-    # Contrastive loss
+        # Contrastive loss
         if self.project:
             contrast_loss = self.loss_fn(proj_z, pos_mask)
         else:
             contrast_loss = self.loss_fn(z, pos_mask)
-        # contrast_loss = self.loss_fn(z, pos_mask)
 
         # Reconstruction loss
         if self.decoder:

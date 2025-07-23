@@ -1,20 +1,20 @@
 
 # Data & preprocessing
 data_path: "/share/home/liangzhongming/phd_code/530/CellNiche/data/"
-dataset: "BALBc_1_expr_gene"
-phenoLabels: "cell_type"
-nicheLabels: "Compartment" # None
+dataset: "osmFISH_SScortex"
+phenoLabels: "ClusterName"
+nicheLabels: "Region" # None
 embedding_type: "pheno_expr"
 hvg: False
 
 # Graph construction
 k_neighborhood: null
-radius: 80.0
+radius: 1000.0
 
 # Sampling & training
 batch_size: 1024
 epochs: null
-max_steps: 80
+max_steps: 20
 lr: 0.001
 weight_decay: 0.0
 dropout: 0.0
@@ -26,7 +26,7 @@ projection: "" # [128, 64]
 decoder: "" # [64]
 
 # Contrastive strategy
-tau: 0.9
+tau: 0.1
 negative_slope: 0.5
 strategy: "freq"
 use_weight: False
@@ -35,14 +35,16 @@ neg_weight_strategy: "inverse_sim"
 
 # Random‐walk
 wt: 20
-wl: 4
+wl: 5
 p: 0.25
 q: 4.0
 
 # Misc
-seed: 2424
+seed: 42
 save: False
 metrics: true
 refine: False
 save_path: "/share/home/liangzhongming/phd_code/530/CellNiche/results"
 verbose: true
+
+# Clustering metrics: {'kmeans': {'Acc': 0.7554429429429429, 'NMI': 0.6721780252385171, 'AMI': 0.6704580393018369, 'ARI': 0.6600704566112201, 'F1 Macro': 0.6564564262718956, 'F1 Micro': 0.7554429429429429}}
