@@ -1,4 +1,3 @@
-
 # CellNiche
 
 ## Overview
@@ -52,7 +51,7 @@ python ./cellniche/main.py --config ./configs/xxx.yaml
 ```
 ### python
 ```python
-import CellNiche
+import cellniche
 
 # Parse arguments from a YAML config
 opts = cellniche.parse_args([
