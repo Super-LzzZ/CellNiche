@@ -2,7 +2,7 @@ import argparse
 import logging
 import yaml
 
-from trainer import run
+from .trainer import run
 
 def parse_args():
     parser = argparse.ArgumentParser(
