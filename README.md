@@ -40,7 +40,7 @@ pip install torch-geometric torch-scatter torch-sparse torch-cluster torch-splin
 pip install scanpy anndata scikit-learn numpy scipy pandas networkx tqdm
 ```
 
-## Tutorial
+## Tutorials
 Coming soon
 
 
