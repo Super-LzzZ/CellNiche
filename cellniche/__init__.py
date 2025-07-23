@@ -1,6 +1,6 @@
 
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "ZMLiang <lzzzmmgpt@gmail.com>"
 
 from .main import main

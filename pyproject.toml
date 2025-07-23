@@ -42,3 +42,14 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/Super-LzzZ/CellNiche"
 Issues = "https://github.com/Super-LzzZ/CellNiche/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cellniche*"]
+exclude = ["configs", "data", "results"]
+
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cellniche*"]
+exclude = ["configs", "data", "results"]

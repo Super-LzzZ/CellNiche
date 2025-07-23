@@ -7,9 +7,9 @@ import torch.nn.functional as F
 from torch_sparse import SparseTensor
 from tqdm import tqdm
 
-from model import Model, Encoder
-from sampler import NeighborSampler
-from utils import setup_seed, load_data, get_positivePairs, clustering_st
+from .model import Model, Encoder
+from .sampler import NeighborSampler
+from .utils import setup_seed, load_data, get_positivePairs, clustering_st
 
 def run(args):
     """
