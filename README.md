@@ -6,20 +6,17 @@
 Instead of processing entire tissue slices, CellNiche samples **local subgraphs** around each cell and learns **context-aware embeddings** via **contrastive learning**, while explicitly **decoupling molecular identity** (gene expression or cell-type labels) from **spatial proximity modeling**.
 
 ### Key Features
-- **Linear scalability** – trains on **10 M+ cells** in minutes (GPU/CPU).  
-- **Cross-platform integration** – unifies data from **Visium, MERFISH, CODEX, CosMx**, etc.  
-- **Robust batch correction** – uses phenotype-level inputs to mitigate technical noise.  
-- **Interpretable micro-environments** – reveals spatial gradients (e.g., TLS → invasive front → tumor core).
+
 
 ## Installation
-## From PyPI
-```bash
-pip install cellniche
-```
-## From Source
+### From Source
 ```bash
 git clone https://github.com/Super-LzzZ/CellNiche.git
 cd cellniche
+```
+### From PyPI
+```bash
+pip install CellNiche
 ```
 
 ## Requirements
@@ -45,12 +42,16 @@ pip install scanpy anndata scikit-learn numpy scipy pandas networkx tqdm
 
 
 ## Getting Started
+```bash
+python ./cellniche/main.py --config ./configs/xxx.yaml
+
+
 ```python
-import cellniche
+import CellNiche
 
 # Parse arguments from a YAML config
 opts = cellniche.parse_args([
-    "--config", "configs/cortex.yaml"
+    "--config", "configs/xxx.yaml"
 ])
 # Run training/inference
 cellniche.main(opts)
@@ -60,10 +61,10 @@ cellniche.main(opts)
 Example YAML snippet (configs/example.yaml):
 ```yaml
 # Data & preprocessing
-data_path: "path/data/cortex/"
+data_path: "path/data/"
 dataset: "osmFISH_SScortex"
 phenoLabels: "ClusterName"
-nicheLabels: "Region" # None
+nicheLabels: "Region"
 embedding_type: "pheno_expr"
 hvg: False
 
@@ -101,10 +102,10 @@ p: 0.25
 q: 4.0
 
 # Misc
-seed: 3207
+seed: 42
 save: False
 metrics: true
 refine: False
-save_path: "path/results/cortex"
+save_path: "path/results"
 verbose: true
 ```
