@@ -75,8 +75,8 @@ def load_data(
     else:
         # choose coords
         if "spatial" in adata.obsm and adata.obsm["spatial"] is not None:
-            # coords = adata.obsm["spatial"]
-            coords = adata.obs[["x", "y"]].to_numpy() # spleen
+            coords = adata.obsm["spatial"]
+            # coords = adata.obs[["x", "y"]].to_numpy() # spleen
         else:
             coords = adata.obs[["x", "y"]].to_numpy()
 

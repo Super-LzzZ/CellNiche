@@ -95,10 +95,10 @@ def run(args):
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
     
-    load_end = time.time()
-    logging.info(
-        f"loading_time: {load_end-load_start:.2f}s"
-    )
+    # load_end = time.time()
+    # logging.info(
+    #     f"loading_time: {load_end-load_start:.2f}s"
+    # )
     
     # Training loop
     train_start = time.time()
@@ -169,7 +169,7 @@ def run(args):
     else:
         logging.warning("Neither epochs nor max_steps specified, no training performed.")
     
-    logging.info(f"Training completed in {time.time() - train_start:.2f}s")
+    # logging.info(f"Training completed in {time.time() - train_start:.2f}s")
 
     # Inference: compute embeddings for all nodes
     model.eval()

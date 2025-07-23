@@ -1,6 +1,6 @@
 
 # Data & preprocessing
-data_path: "/share/home/liangzhongming/phd_code/530/CellNiche/data/"
+data_path: "./data/"
 dataset: "osmFISH_SScortex"
 phenoLabels: "ClusterName"
 nicheLabels: "Region" # None
@@ -26,7 +26,7 @@ projection: "" # [128, 64]
 decoder: "" # [64]
 
 # Contrastive strategy
-tau: 0.9
+tau: 0.1
 negative_slope: 0.5
 strategy: "freq"
 use_weight: False
@@ -34,17 +34,15 @@ pos_weight_strategy: "inverse_sim"
 neg_weight_strategy: "inverse_sim"
 
 # Random‐walk
-wt: 30
+wt: 20
 wl: 5
 p: 0.25
 q: 4.0
 
 # Misc
-seed: 3207
+seed: 42
 save: False
 metrics: true
 refine: False
-save_path: "/share/home/liangzhongming/phd_code/530/CellNiche/results"
+save_path: "./results"
 verbose: true
-
-# Clustering metrics: {'kmeans': {'Acc': 0.7554429429429429, 'NMI': 0.6721780252385171, 'AMI': 0.6704580393018369, 'ARI': 0.6600704566112201, 'F1 Macro': 0.6564564262718956, 'F1 Micro': 0.7554429429429429}}

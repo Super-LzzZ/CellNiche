@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CellNiche"
-version = "0.1.0"
-description = "Graph contrastive learning for spatial transcriptomics"
+version = "0.1.1"
+description = "CellNiche represents cellular microenvironments in atlas-scale spatial omics data with contrastive learning"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
