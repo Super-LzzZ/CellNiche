@@ -2,7 +2,14 @@
 # CellNiche
 
 ## Overview
+**CellNiche** is a scalable, **cell-centric** framework for identifying and characterizing cellular micro-environments from **atlas-scale, heterogeneous spatial omics data**.  
+Instead of processing entire tissue slices, CellNiche samples **local subgraphs** around each cell and learns **context-aware embeddings** via **contrastive learning**, while explicitly **decoupling molecular identity** (gene expression or cell-type labels) from **spatial proximity modeling**.
 
+### Key Features
+- **Linear scalability** – trains on **10 M+ cells** in minutes (GPU/CPU).  
+- **Cross-platform integration** – unifies data from **Visium, MERFISH, CODEX, CosMx**, etc.  
+- **Robust batch correction** – uses phenotype-level inputs to mitigate technical noise.  
+- **Interpretable micro-environments** – reveals spatial gradients (e.g., TLS → invasive front → tumor core).
 
 ## Installation
 ## From PyPI
