@@ -2,7 +2,7 @@
 # CellNiche
 
 ## Overview
-CellNiche is a graph‐contrastive learning framework for spatial transcriptomics data. It constructs a cell‐cell graph from spatial coordinates or a provided adjacency, learns low-dimensional embeddings via a contrastive graph neural network (GNN), and can optionally reconstruct gene expression profiles. Use CellNiche to discover spatial domains and relationships between cells in high-resolution tissue maps.
+
 
 ## Installation
 ## From PyPI
@@ -12,8 +12,7 @@ pip install cellniche
 ## From Source
 ```bash
 git clone https://github.com/Super-LzzZ/CellNiche.git
-cd CellNiche/release
-pip install .
+cd cellniche
 ```
 
 ## Requirements
