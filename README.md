@@ -1,13 +1,12 @@
+
 # CellNiche
 
-## Overview
+## Overview ✨
 **CellNiche** is a scalable, **cell-centric** framework for identifying and characterizing cellular micro-environments from **atlas-scale, heterogeneous spatial omics data**.  
 Instead of processing entire tissue slices, CellNiche samples **local subgraphs** around each cell and learns **context-aware embeddings** via **contrastive learning**, while explicitly **decoupling molecular identity** (gene expression or cell-type labels) from **spatial proximity modeling**.
 
-### Key Features
 
-
-## Installation
+## Installation ⚙️
 ### From Source
 ```bash
 git clone https://github.com/Super-LzzZ/CellNiche.git
@@ -56,23 +55,38 @@ pip install pyyaml
 ```
 
 
-## Tutorials
-Coming soon
+## Tutorials 📚
+Spatial proteomics data or single-cell spatial transcriptomics data
+CellNiche for single-slice
+[cortex](https://markdown.com.cn)
+[spleen](https://markdown.com.cn)
+[mouse_brain](https://markdown.com.cn)
+
+CellNiche for integrated multiple slices from the same experiment
+[NSCLC](https://markdown.com.cn)
+
+CellNiche for integrated multiple slices across different technologies
+[mergedBrain](https://markdown.com.cn)
 
 
-## Getting Started
+## Getting Started 🚀
 ### bash(recommend)
 ```bash
-python ./cellniche/main.py --config ./configs/xxx.yaml
+python -m cellniche.main --config ./configs/cortex.yaml
 
 ```
 ### python
 ```python
-import cellniche
+# way 1: from code
+# sys.path.append('/share/home/liangzhongming/phd_code/530/CellNiche/release') from code
+# import cellniche as cn
+
+# way 2: from PyPI
+import cellniche as cn
+
 
 # Parse arguments from a YAML config
 # Run training/inference
-cellniche.main(["--config", "./configs/xxx.yaml"])
-
+adata = cn.cli(["--config", "../configs/cortex.yaml"])
 ```
 
