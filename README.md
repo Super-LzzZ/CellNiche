@@ -56,7 +56,7 @@ pip install pyyaml
 
 
 ## Tutorials 📚
-Spatial proteomics data or single-cell spatial transcriptomics data
+#### Spatial proteomics data or single-cell spatial transcriptomics data
 CellNiche for single-slice
 * [CellNiche's demonstration on cortex osmFISH data](tutorial/cortex.ipynb)
 * [CellNiche's demonstration on mouse_spleen CODEX data](tutorial/spleen.ipynb)
@@ -69,7 +69,7 @@ CellNiche for integrated multiple slices across different technologies
 * [Constructing a cross-technique integrated mouse brain dataset](tutorial/create_mergedBrainDataset.ipynb)
 * [CellNiche's demonstration of batch effects on mergedBrain data](tutorial/mergedBrain_batch.ipynb)
 * [CellNiche's demonstration on mergedBrain data ( part1: Atlas1)](tutorial/mergedBrain_patr1.ipynb)
-* [CellNiche's demonstration on mergedBrain data ( part2: Atlas2,3,4)](tutorial/mergedBrain_patr2.ipynb)
+* [CellNiche's demonstration on mergedBrain data ( part2: Atlas2, 3, 4)](tutorial/mergedBrain_part2.ipynb)
 
 
 
