@@ -2,12 +2,12 @@ from importlib import import_module
 from types import ModuleType
 from typing import Dict, Any
 
-__version__ = "0.1.4"
+__version__ = "0.1.5"
 __author__  = "ZMLiang <lzzzmmgpt@gmail.com>"
 
 _EXPORTS = {
     # ── CLI (functions) ───────────────────────────────────────
-    "main"          : (".main", "main"),
+    "cli"          : (".main", "main"),
     "parse_args"    : (".main", "parse_args"),
 
     # ── Core model (classes) ─────────────────────────────────
@@ -23,6 +23,14 @@ _EXPORTS = {
 
     # ── Utils (function) ─────────────────────────────────────
     "clustering_st" : (".utils", "clustering_st"),
+    "match_labels" : (".utils", "match_labels"),
+    "refine_spatial_domains" : (".utils", "refine_spatial_domains"),
+    "setup_seed" : (".utils", "setup_seed"),
+    
+    "compute_entropy_batch_mixing" : (".utils", "compute_entropy_batch_mixing"),
+    "compute_ilisi" : (".utils", "compute_ilisi"),
+    "compute_seurat_alignment_score" : (".utils", "compute_seurat_alignment_score"),
+    "compute_avg_silhouette_width_batch" : (".utils", "compute_avg_silhouette_width_batch"),
 }
 
 _cache: Dict[str, Any] = {}

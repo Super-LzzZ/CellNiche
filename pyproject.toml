@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CellNiche"
-version = "0.1.4"
+version = "0.1.5"
 description = "CellNiche represents cellular microenvironments in atlas-scale spatial omics data with contrastive learning"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -46,4 +46,4 @@ Issues = "https://github.com/Super-LzzZ/CellNiche/issues"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["cellniche*"]
-exclude = ["configs", "data", "results"]
+exclude = ["configs", "data", "results", "tutorial"]

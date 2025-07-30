@@ -68,7 +68,9 @@ CellNiche for integrated multiple slices from the same experiment
 CellNiche for integrated multiple slices across different technologies
 * [Constructing a cross-technique integrated mouse brain dataset](tutorial/create_mergedBrainDataset.ipynb)
 * [CellNiche's demonstration of batch effects on mergedBrain data](tutorial/mergedBrain_batch.ipynb)
-* [CellNiche's demonstration on mergedBrain data](tutorial/mergedBrain.ipynb)
+* [CellNiche's demonstration on mergedBrain data ( part1: Atlas1)](tutorial/mergedBrain_patr1.ipynb)
+* [CellNiche's demonstration on mergedBrain data ( part2: Atlas2,3,4)](tutorial/mergedBrain_patr2.ipynb)
+
 
 
 ## Getting Started 🚀

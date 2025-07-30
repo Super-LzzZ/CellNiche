@@ -1,3 +1,4 @@
+
 import os
 import random
 import numpy as np
@@ -23,6 +24,18 @@ from torch_sparse import SparseTensor
 from torch_geometric.utils import to_undirected
 
 from typing import Optional, Union, Any, Tuple, List
+from numpy.typing import ArrayLike
+from scipy.stats import entropy
+from sklearn.metrics import silhouette_samples
+
+
+def to_float_tensor(arr):
+    """Safely convert numpy array / tensor -> float32 tensor w/o grad."""
+    if isinstance(arr, torch.Tensor):
+        return arr.clone().detach().float()
+    else:                       # numpy / list
+        return torch.as_tensor(arr, dtype=torch.float)
+
 
 def load_data(
     data_path: str,
@@ -32,7 +45,8 @@ def load_data(
     embedding_type: str,
     radius: Optional[float],
     k_neighborhood: int,
-    hvg: bool
+    hvg: bool,
+    n_hvg: int,
 ) -> Tuple[torch.FloatTensor, torch.LongTensor, np.ndarray, Any, int, Optional[torch.FloatTensor]]:
     """
     Load AnnData from .h5ad, build node features, edge index, and labels.
@@ -117,7 +131,7 @@ def load_data(
     if embedding_type in ("pheno_expr", "expr"):
         if hvg:
             # select HVGs, normalize & log
-            sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=512)
+            sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=256)
             sc.pp.normalize_total(adata, target_sum=1e4)
             sc.pp.log1p(adata)
             adata = adata[:, adata.var["highly_variable"]]
@@ -138,17 +152,18 @@ def load_data(
         logging.info(
             f"Loaded {dataset}: " f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, {onehot.shape[-1]} features"
         )
-        return torch.tensor(onehot, dtype=torch.float), edge_index, y, adata, n_classes, torch.tensor(expr, dtype=torch.float)
+        # return torch.tensor(onehot, dtype=torch.float), edge_index, y, adata, n_classes, torch.tensor(expr, dtype=torch.float)
+        return to_float_tensor(onehot), edge_index, y, adata, n_classes, to_float_tensor(expr)
     elif embedding_type == "pheno":
         logging.info(
             f"Loaded {dataset}: " f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, {onehot.shape[-1]} features"
         )
-        return torch.tensor(onehot, dtype=torch.float), edge_index, y, adata, n_classes, None
+        return to_float_tensor(onehot), edge_index, y, adata, n_classes, None
     elif embedding_type == "expr":
         logging.info(
             f"Loaded {dataset}: " f"{expr.shape[0]} nodes, {edge_index.shape[1]} edges, {expr.shape[-1]} features"
         )
-        return torch.tensor(expr, dtype=torch.float), edge_index, y, adata, n_classes, None
+        return to_float_tensor(onehot), edge_index, y, adata, n_classes, None
     else:
         raise ValueError(f"Unknown embedding_type: {embedding_type}")
 
@@ -337,7 +352,8 @@ def clustering_st(
     else:
         feats = features
     # 2) Run KMeans
-    km = KMeans(n_clusters=n_clusters, random_state=0)
+    km = KMeans(n_clusters=n_clusters, max_iter=5000, n_init=10)
+    # km = KMeans(n_clusters=n_clusters, max_iter=10000, n_init=20)
     raw_labels = km.fit_predict(feats).astype(int)
 
     # 3) Store raw labels
@@ -381,6 +397,236 @@ def clustering_st(
                 'F1 Micro': f1i,
                 'Silhouette': sil,
             }
-
+    
     return adata, metrics_results    
     
+
+
+def _rng(random_state: Optional[int] = None) -> np.random.Generator:
+    """Return a NumPy Generator with the requested seed (or global RNG)."""
+    return np.random.default_rng(random_state)
+
+
+def _nearest_neighbors(
+    x: np.ndarray, k: int, **kwargs
+) -> np.ndarray:
+    """
+    Return indices of the *k* nearest neighbours for every point in *x*.
+
+    The first neighbour returned by ``sklearn`` is the query point itself,
+    so we discard it.
+    """
+    nn = NearestNeighbors(n_neighbors=k + 1, **kwargs).fit(x)
+    indices = nn.kneighbors(x, return_distance=False)[:, 1:]  # drop self‑index
+    return indices
+
+
+def _encode_labels(labels: ArrayLike) -> np.ndarray:
+    """
+    Map arbitrary label values to consecutive integers starting from 0.
+
+    This simplifies downstream use of ``np.bincount`` and avoids
+    large sparse counts when label values are not contiguous.
+    """
+    labels = np.asarray(labels)
+    _, encoded = np.unique(labels, return_inverse=True)
+    return encoded
+
+
+# ---------------------------------------------------------------------
+# 1. Entropy of Batch Mixing
+# ---------------------------------------------------------------------
+def compute_entropy_batch_mixing(
+    embeddings: np.ndarray,
+    batch_labels: ArrayLike,
+    k: int = 50,
+    normalize: bool = True,
+    **nn_kwargs,
+) -> float:
+    """
+    Average entropy of batch labels in the *k*‑NN neighbourhood of each cell.
+
+    Parameters
+    ----------
+    embeddings
+        Low‑dimensional representation of shape *(n_cells, n_dims)*.
+    batch_labels
+        Iterable of length *n_cells* with one label per cell.
+    k
+        Number of neighbours (*excluding* the query cell) to consider.
+    normalize
+        If ``True`` (default) divide by the maximal entropy
+        ``log(n_batches)``, yielding values in ``[0, 1]``.
+    **nn_kwargs
+        Additional arguments forwarded to :class:`sklearn.neighbors.NearestNeighbors`.
+
+    Returns
+    -------
+    float
+        Mean entropy across all cells.
+    """
+    if k < 1:
+        raise ValueError("k must be ≥ 1")
+
+    batch_labels = _encode_labels(batch_labels)
+    indices = _nearest_neighbors(embeddings, k=k, **nn_kwargs)
+
+    n_batches = int(batch_labels.max()) + 1
+    max_ent = np.log(n_batches) if normalize else 1.0
+
+    entropies = []
+    for nbr in indices:
+        counts = np.bincount(batch_labels[nbr], minlength=n_batches)
+        probs = counts / k  # guaranteed non‑negative, summing to 1
+        ent = entropy(probs) / max_ent if max_ent > 0 else 0.0
+        entropies.append(ent)
+
+    return float(np.mean(entropies))
+
+
+# ---------------------------------------------------------------------
+# 2. iLISI
+# ---------------------------------------------------------------------
+def compute_ilisi(
+    embeddings: np.ndarray,
+    batch_labels: ArrayLike,
+    k: int = 90,
+    **nn_kwargs,
+) -> np.ndarray:
+    """
+    Compute the *inverse* Local Inverse Simpson’s Index (iLISI).
+
+    For each cell *i*::
+
+        iLISI_i = 1 − (# neighbours from same batch) / k
+
+    Thus, 0 indicates perfect batch isolation; 1 indicates perfect mixing.
+
+    Parameters
+    ----------
+    embeddings
+        *(n_cells, n_dims)* array.
+    batch_labels
+        Iterable with one batch label per cell.
+    k
+        Number of neighbours (*excluding* the query cell) to consider.
+    **nn_kwargs
+        Extra arguments for :class:`sklearn.neighbors.NearestNeighbors`.
+
+    Returns
+    -------
+    np.ndarray
+        Vector of length *n_cells* with iLISI scores.
+    """
+    batch_labels = _encode_labels(batch_labels)
+    indices = _nearest_neighbors(embeddings, k=k, **nn_kwargs)
+
+    same_batch = (batch_labels[indices] == batch_labels[:, None]).sum(axis=1)
+    ilisi = 1.0 - (same_batch / k)
+    return ilisi
+
+
+# ---------------------------------------------------------------------
+# 3. Seurat Alignment Score (SAS)
+# ---------------------------------------------------------------------
+def compute_seurat_alignment_score(
+    embeddings: np.ndarray,
+    batch_labels: ArrayLike,
+    neighbor_frac: float = 0.01,
+    n_repeats: int = 3,
+    random_state: Optional[int] = None,
+    **nn_kwargs,
+) -> float:
+    """
+    Seurat Alignment Score (Butler *et al.*, Cell 2018).
+
+    The score estimates how well batches mix after integration by repeatedly
+    down‑sampling to equal batch sizes and measuring the proportion of
+    cross‑batch neighbours.
+
+    Parameters
+    ----------
+    embeddings
+        *(n_cells, n_dims)* array.
+    batch_labels
+        Iterable with one batch label per cell.
+    neighbor_frac
+        Fraction of the (sub‑sampled) cells to use as *k* in *k*‑NN.
+        Must be in ``(0, 1]``.
+    n_repeats
+        Number of random sub‑samples to average.
+    random_state
+        Seed for reproducibility.
+    **nn_kwargs
+        Extra arguments for :class:`sklearn.neighbors.NearestNeighbors`.
+
+    Returns
+    -------
+    float
+        Mean SAS across repeats (1 = perfect mixing, 0 = no mixing).
+    """
+    if not (0 < neighbor_frac <= 1):
+        raise ValueError("neighbor_frac must be in (0, 1]")
+
+    rng = _rng(random_state)
+    batch_labels = _encode_labels(batch_labels)
+    batch_indices = [np.where(batch_labels == b)[0] for b in np.unique(batch_labels)]
+    min_size = min(len(idx) for idx in batch_indices)
+    n_batches = len(batch_indices)
+
+    scores = []
+    for _ in range(n_repeats):
+        # balanced subsample
+        sel = np.concatenate([rng.choice(idx, min_size, replace=False) for idx in batch_indices])
+        x_sub, y_sub = embeddings[sel], batch_labels[sel]
+
+        k = max(int(round(len(sel) * neighbor_frac)), 1)
+        indices = _nearest_neighbors(x_sub, k=k, **nn_kwargs)
+
+        same_batch = (y_sub[indices] == y_sub[:, None]).sum(axis=1).mean()
+        score = (k - same_batch) * n_batches / (k * (n_batches - 1))
+        scores.append(min(score, 1.0))  # numerical guard
+
+    return float(np.mean(scores))
+
+
+# ---------------------------------------------------------------------
+# 4. ASW‑batch
+# ---------------------------------------------------------------------
+def compute_avg_silhouette_width_batch(
+    embeddings: np.ndarray,
+    batch_labels: ArrayLike,
+    cell_types: ArrayLike,
+    min_cells: int = 3,
+    **silhouette_kwargs,
+) -> float:
+    """
+    Average Silhouette Width computed per cell‑type, then averaged.
+
+    Parameters
+    ----------
+    ...
+    min_cells
+        Minimum number of cells a cell‑type must have to be included.
+    """
+    x = embeddings
+    y = _encode_labels(batch_labels)
+    ct = _encode_labels(cell_types)
+
+    scores = []
+    for t in np.unique(ct):
+        mask = ct == t
+        n = mask.sum()
+        n_labels = np.unique(y[mask]).size
+        # Skip if too few cells OR labels≈cells (invalid for silhouette)
+        if n < min_cells or n_labels < 2 or n_labels >= n:
+            scores.append(0.0)
+            continue
+        try:
+            s = silhouette_samples(x[mask], y[mask], **silhouette_kwargs)
+            scores.append((1.0 - np.abs(s)).mean())
+        except ValueError:
+            scores.append(0.0)
+
+    return float(np.mean(scores))
+

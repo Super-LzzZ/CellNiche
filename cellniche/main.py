@@ -1,3 +1,4 @@
+
 import argparse
 import logging
 import yaml
@@ -36,7 +37,8 @@ def main(argv=None):
         datefmt="%H:%M:%S",
     )
     # 4) Kick off training/inference
-    run(opts)
+    adata = run(opts)
+    return adata
 
 if __name__ == "__main__":
     main()

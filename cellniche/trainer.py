@@ -1,6 +1,7 @@
 import time
 import logging
 
+import random
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -17,7 +18,11 @@ def run(args):
     """
     load_start = time.time()
     # Set random seed for reproducibility
-    setup_seed(args.seed)
+    seed = args.seed
+    if seed is None:
+        seed = random.randint(0, 2**12 - 1)
+    setup_seed(seed)
+    logging.info(f"Seed: {seed}")
 
     # Select device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -33,10 +38,12 @@ def run(args):
         radius=args.radius,
         k_neighborhood=args.k_neighborhood,
         hvg=args.hvg,
+        n_hvg=args.n_hvg,
     )
     x = x.to(device)
     if expr is not None:
         expr = expr.to(device)
+    
         
     # Build sparse adjacency tensor
     adj = SparseTensor(
@@ -89,16 +96,16 @@ def run(args):
         pos_weight_strategy=args.pos_weight_strategy,
         neg_weight_strategy=args.neg_weight_strategy,
     ).to(device)
-    logging.info(f"Model architecture:\n{model}")
+    # logging.info(f"Model architecture:\n{model}")
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
     
-    # load_end = time.time()
-    # logging.info(
-    #     f"loading_time: {load_end-load_start:.2f}s"
-    # )
+    load_end = time.time()
+    logging.info(
+        f"loading_time: {load_end-load_start:.2f}s"
+    )
     
     # Training loop
     train_start = time.time()
@@ -169,7 +176,7 @@ def run(args):
     else:
         logging.warning("Neither epochs nor max_steps specified, no training performed.")
     
-    # logging.info(f"Training completed in {time.time() - train_start:.2f}s")
+    logging.info(f"Training completed in {time.time() - train_start:.2f}s")
 
     # Inference: compute embeddings for all nodes
     model.eval()
@@ -194,3 +201,5 @@ def run(args):
         output_file = f"{args.save_path}/{args.dataset}_emb_{args.embedding_type}.h5ad"
         adata.write_h5ad(output_file)
         logging.info(f"Saved embeddings to {output_file}")
+    
+    return adata

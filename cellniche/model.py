@@ -5,8 +5,6 @@ from torch.nn import BatchNorm1d, LeakyReLU, PReLU
 from torch_geometric.nn import SAGEConv
 from typing import Optional, List, Tuple
 
-
-
 class ContrastiveLoss(nn.Module):
     """
     Contrastive loss for graph embeddings using a positive pair mask.
@@ -69,7 +67,6 @@ class ContrastiveLoss(nn.Module):
 
         # Compute log probabilities
         log_probs = F.log_softmax(sim_matrix, dim=1)
-        pos_log = log_probs[pos_dense]
 
         if self.use_weight:
             # Compute positive weights
@@ -82,11 +79,23 @@ class ContrastiveLoss(nn.Module):
                 pos_w = torch.ones_like(values)
             # Normalize weights to [0,1]
             pos_w = (pos_w - pos_w.min()) / (pos_w.max() - pos_w.min() + 1e-8)
+            
+            if self.neg_weight_strategy == 'inverse_sim':
+                weight_mat = torch.ones_like(sim_matrix)
+                neg_sim = sim_matrix[neg_dense]
+                if neg_sim.numel() > 0:
+                    neg_w = (neg_sim - neg_sim.min()) / (neg_sim.max() - neg_sim.min() + 1e-8) + 1.0
+                    weight_mat[neg_dense] = neg_w
 
+                log_probs = sim_matrix - torch.logsumexp(
+                    sim_matrix + torch.log(weight_mat), dim=1, keepdim=True
+                )
             # Weighted positive loss
+            pos_log = log_probs[pos_dense]
             loss = - (pos_log * pos_w).mean()
         else:
             # Standard contrastive loss
+            pos_log = log_probs[pos_dense]
             loss = - pos_log.mean()
 
         return loss

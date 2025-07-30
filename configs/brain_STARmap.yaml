@@ -1,0 +1,82 @@
+# ============================================================
+#  DATA & PRE‑PROCESSING
+# ============================================================
+data_path: "/share/home/liangzhongming/phd_code/530/CellNiche/data/"               # Root directory of your input data
+dataset: "well05_cellTypt"          # Folder / file prefix of the dataset
+phenoLabels: "supertype"            # Cell‑level phenotype label in .obs
+nicheLabels: "Sub_molecular_tissue_region"          # Ground‑truth micro‑environment label in .obs
+embedding_type: "pheno_expr"        # Options: "pheno_expr" | "pheno" | "expr"
+                                    #   pheno_expr : use both phenotype & expression
+                                    #   pheno      : use phenotype only
+                                    #   expr       : use expression only
+
+hvg: false                          # Select highly‑variable genes (HVGs) or not
+n_hvg: 256                          # Number of HVGs if hvg == true
+
+# ============================================================
+#  GRAPH CONSTRUCTION (CELL‑CELL GRAPH)
+# ============================================================
+#  Tune these two to get an average node degree ~10‑60.
+k_neighborhood: null                # k‑NN graph (set null to disable)
+radius: 300.0                       # Radius‑based graph (μm or pixels)
+
+# ============================================================
+#  SAMPLING & TRAINING
+# ============================================================
+#  These three parameters greatly affect the training effect of the model. 
+#  Experience requires that at least one epoch/10+ steps be trained. 
+#  For example, a large data set (millions of cells) only needs one epoch to have enough iterative updates, 
+#  while a small data set (thousands of cells) may only iterate several times after one epoch. In this case, it is recommended to fix max_steps for training
+batch_size: 1024                    # Limited by CPU/GPU memory
+epochs: 1                           # Total passes over the dataset
+max_steps: null                     # Fixed number of steps
+
+lr: 0.001                           # Learning rate
+weight_decay: 0.0                   # L2 regularisation
+dropout: 0.0                        # Dropout in the model
+
+# ============================================================
+#  MODEL ARCHITECTURE
+# ============================================================
+hidden_channels: [512, 256]         # Encoder MLP/GNN dims: in_dim → 512 → 256
+size: [10, 10]                      # Sub‑graph size: [#hop1, #hop2] per seed cell
+projection: ""                      # Optional projection head, e.g. [256, 64]: hidden_dim → 256 → 64
+decoder: ""                         # Optional decoder dims, e.g. [64]: hidden_dim → 64 → in_dim; add recon loss
+
+# ============================================================
+#  CONTRASTIVE STRATEGY
+# ============================================================
+tau: 0.9                            # Temperature for InfoNCE loss
+negative_slope: 0.5                 # LeakyReLU slope for similarity threshold
+
+strategy: "freq"                    # Positive‑pair definition
+                                    #   "freq" : co‑localisation
+                                    #   "sim"  : co‑expression          (requires expr)
+                                    #   "and"  : intersection of both   (requires pheno_expr)
+                                    #   "or"   : union of both          (requires pheno_expr)
+
+use_weight: false                   # Hard‑sample aware weighting
+#  "inverse_freq" means that when positive and negative samples are defined by co-expression, the learning of those co-localization high-weight samples in the positive samples is enhanced (enhancing weak positive samples)
+#  "inverse_sim" means that when positive and negative samples are defined by co-localization, the learning of those co-expression high-weight samples in the positive samples is enhanced (enhancing weak positive samples)
+pos_weight_strategy: "inverse_sim"  # Weight weak positive pairs (options: none | inverse_freq | inverse_sim)
+#  "inverse_sim" means that when defining positive and negative samples by co-localization, the learning of those co-expression high-weight samples in the negative samples is weakened (weakening strong negative samples)
+neg_weight_strategy: "inverse_sim"  # Down‑weight strong negative pairs (options: none | inverse_sim)
+
+# ============================================================
+#  RANDOM WALK (FOR MICRO‑ENVIRONMENT SAMPLING)
+# ============================================================
+wt: 10                              # Walks per seed cell
+wl: 4                               # Walk length (number of cells)
+#  Not enabled by default
+p: 0.25                             # Node2Vec parameter p (return)  – BFS↑ when low
+q: 4.0                              # Node2Vec parameter q (in‑out) – DFS↑ when low
+
+# ============================================================
+#  MISCELLANEOUS
+# ============================================================
+seed: null                          # Random seed; null ⇒ draw a random one at runtime
+save: false                         # Save model checkpoints & embeddings
+metrics: true                       # Evaluate downstream clustering metrics
+refine: false                       # Optional fine‑tuning of predicted labels
+save_path: "./results"              # Output directory
+verbose: true                       # Print detailed logs
