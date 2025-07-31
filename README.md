@@ -7,7 +7,7 @@ Instead of processing entire tissue slices, CellNiche samples **local subgraphs*
 
 
 ## Installation ⚙️
-### From Source
+### From Source (recommend)
 ```bash
 git clone https://github.com/Super-LzzZ/CellNiche.git
 cd cellniche
