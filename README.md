@@ -77,19 +77,19 @@ CellNiche for integrated multiple slices across different technologies
 
 
 ## Getting Started 🚀
-### bash(recommend)
+### bash (recommend)
 ```bash
 python -m cellniche.main --config ./configs/cortex.yaml
 
 ```
 ### python
 ```python
-# way 1: If you download from source
-# sys.path.append('/share/home/liangzhongming/phd_code/530/CellNiche/release')
-# import cellniche as cn
-
-# way 2: If you download from PyPI
+# way 1: If you download from source (better suited for personalized use)
+sys.path.append('/share/home/liangzhongming/phd_code/530/CellNiche/release')
 import cellniche as cn
+
+# way 2: If you download from PyPI (better suited for stable use)
+# import cellniche as cn
 
 
 # Parse arguments from a YAML config
@@ -97,3 +97,6 @@ import cellniche as cn
 adata = cn.cli(["--config", "../configs/cortex.yaml"])
 ```
 
+## Contribution
+
+For questions or comments, please use the [issue tracker](https://github.com/Super-LzzZ/CellNiche/issues) and/or email Zhongming Liang (liangzhongming21@mails.ucas.ac.cn).
