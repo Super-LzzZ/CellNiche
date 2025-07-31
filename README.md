@@ -57,6 +57,9 @@ pip install pyyaml
 
 ## Tutorials 📚
 #### Spatial proteomics data or single-cell spatial transcriptomics data
+
+The data required to run tutorials is located in `data/`. Please note that due to Github size limitations, you have to download the relevant data for analysis from [Google Drive](https://drive.google.com/drive/folders/1pw_TrjsHIWAXnz1Qzfir-DJOv4IGI4Y5?usp=sharing). 
+
 CellNiche for single-slice
 * [CellNiche's demonstration on cortex osmFISH data](tutorial/cortex.ipynb)
 * [CellNiche's demonstration on mouse_spleen CODEX data](tutorial/spleen.ipynb)
