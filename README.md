@@ -68,8 +68,8 @@ CellNiche for integrated multiple slices from the same experiment
 CellNiche for integrated multiple slices across different technologies
 * [Constructing a cross-technique integrated mouse brain dataset](tutorial/create_mergedBrainDataset.ipynb)
 * [CellNiche's demonstration of batch effects on mergedBrain data](tutorial/mergedBrain_batch.ipynb)
-* [CellNiche's demonstration on mergedBrain data ( part1: Atlas1)](tutorial/mergedBrain_patr1.ipynb)
-* [CellNiche's demonstration on mergedBrain data ( part2: Atlas2, 3, 4)](tutorial/mergedBrain_part2.ipynb)
+* [CellNiche's demonstration on mergedBrain data (part1: Atlas1)](tutorial/mergedBrain_patr1.ipynb)
+* [CellNiche's demonstration on mergedBrain data (part2: Atlas2, 3, 4)](tutorial/mergedBrain_part2.ipynb)
 
 
 
@@ -81,11 +81,11 @@ python -m cellniche.main --config ./configs/cortex.yaml
 ```
 ### python
 ```python
-# way 1: from code
-# sys.path.append('/share/home/liangzhongming/phd_code/530/CellNiche/release') from code
+# way 1: If you download from source
+# sys.path.append('/share/home/liangzhongming/phd_code/530/CellNiche/release')
 # import cellniche as cn
 
-# way 2: from PyPI
+# way 2: If you download from PyPI
 import cellniche as cn
 
 
