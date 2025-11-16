@@ -43,6 +43,11 @@ def run(args):
     x = x.to(device)
     if expr is not None:
         expr = expr.to(device)
+
+    load_end = time.time()
+    logging.info(
+        f"loading_time: {load_end-load_start:.2f}s"
+    )
     
         
     # Build sparse adjacency tensor
@@ -102,10 +107,6 @@ def run(args):
         model.parameters(), lr=args.lr, weight_decay=args.weight_decay
     )
     
-    load_end = time.time()
-    logging.info(
-        f"loading_time: {load_end-load_start:.2f}s"
-    )
     
     # Training loop
     train_start = time.time()
