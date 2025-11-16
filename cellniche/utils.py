@@ -386,7 +386,7 @@ def clustering_st(
             ami = adjusted_mutual_info_score(true_labels, aligned)
             f1m = f1_score(true_labels, aligned, average='macro')
             f1i = f1_score(true_labels, aligned, average='micro')
-            sil = silhouette_score(feats, aligned)
+            sil = silhouette_score(feats, true_labels)
 
             metrics_results[method] = {
                 'Acc': acc,
