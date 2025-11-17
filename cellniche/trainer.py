@@ -128,11 +128,11 @@ def run(args):
                 pos_mask = get_positivePairs(adj_batch, features, strategy=args.strategy)
 
                 optimizer.zero_grad()
-                z, proj_z, rec_expr, _ = model(x[n_id], adjs=adjs)
+                z, proj_z, rec_expr, target_expr = model(x[n_id], adjs=adjs)
                 z = F.normalize(z, p=2, dim=1)
                 proj_z = F.normalize(proj_z, p=2, dim=1)
                 contrast_loss, recon_loss = model.compute_loss(
-                    z, pos_mask, proj_z, rec_expr, target=expr
+                    z, pos_mask, proj_z, rec_expr, target=target_expr
                 )
                 loss = 0.8 * contrast_loss + 0.2 * recon_loss if args.decoder else contrast_loss
                 loss.backward()
@@ -158,11 +158,11 @@ def run(args):
                 pos_mask = get_positivePairs(adj_batch, features, strategy=args.strategy)
 
                 optimizer.zero_grad()
-                z, proj_z, rec_expr, _ = model(x[n_id], adjs=adjs)
+                z, proj_z, rec_expr, target_expr = model(x[n_id], adjs=adjs)
                 z = F.normalize(z, p=2, dim=1)
                 proj_z = F.normalize(proj_z, p=2, dim=1)
                 contrast_loss, recon_loss = model.compute_loss(
-                    z, pos_mask, proj_z, rec_expr, target=expr
+                    z, pos_mask, proj_z, rec_expr, target=target_expr
                 )
                 loss = 0.8 * contrast_loss + 0.2 * recon_loss if args.decoder else contrast_loss
                 loss.backward()
