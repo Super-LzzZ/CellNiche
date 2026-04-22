@@ -2,8 +2,7 @@
 # CellNiche
 
 ## Overview ✨
-**CellNiche** is a scalable, **cell-centric** framework for identifying and characterizing cellular micro-environments from **atlas-scale, heterogeneous spatial omics data**.  
-Instead of processing entire tissue slices, CellNiche samples **local subgraphs** around each cell and learns **context-aware embeddings** via **contrastive learning**, while explicitly **decoupling molecular identity** (gene expression or cell-type labels) from **spatial proximity modeling**.
+**CellNiche** is a lightweight and scalable representation learning framework for **atlas-scale spatial omics** that **identifies and characterizes cellular microenvironments**. It flexibly accommodates multiple forms of cellular identity representations, including **expression matrices, pretrained embeddings, and discrete cell labels**, making it well suited for **heterogeneous spatial omics data**. With efficient computation and strong robustness across input types, CellNiche supports **cross-sample analysis of cancer spatial omics cohorts** and the **construction of large-scale virtual organ atlases**.
 
 
 ## Installation ⚙️
