@@ -10,7 +10,7 @@ Please check our paper *CellNiche represents cellular microenvironments in atlas
 ### From Source (recommend)
 ```bash
 git clone https://github.com/Super-LzzZ/CellNiche.git
-cd cellniche
+cd CellNiche
 ```
 ### From PyPI
 ```bash
@@ -18,7 +18,7 @@ pip install CellNiche
 ```
 
 ## Requirements
-- Python ≥ 3.7  
+- Python ≥ 3.9  
 - PyTorch ≥ 1.12  
 - PyTorch Geometric (torch-geometric, torch-scatter, torch-sparse, torch-cluster, torch-spline-conv)  
 - Scanpy ≥ 1.9  
@@ -79,7 +79,7 @@ CellNiche for integrated multiple slices across different technologies
 ## Getting Started 🚀
 ### bash (recommend)
 ```bash
-python -m cellniche.main --config ./configs/cortex.yaml
+python -m cellniche.main --config ./configs/cortex_osmFISH.yaml
 
 ```
 ### python
@@ -94,7 +94,7 @@ import cellniche as cn
 
 # Parse arguments from a YAML config
 # Run training/inference
-adata = cn.cli(["--config", "../configs/cortex.yaml"])
+adata = cn.cli(["--config", "./configs/cortex_osmFISH.yaml"])
 ```
 
 ## Contribution

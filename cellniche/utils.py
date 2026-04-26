@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 import scipy
+import scipy.sparse as sps
 import logging
 import torch.nn.functional as F
 import scanpy as sc
@@ -36,6 +37,91 @@ def to_float_tensor(arr):
     else:                       # numpy / list
         return torch.as_tensor(arr, dtype=torch.float)
 
+def _resolve_squidpy_connectivity_key(adata, connectivity_key: str = "spatial") -> str:
+    """
+    Resolve Squidpy connectivity key in adata.obsp.
+
+    Squidpy usually stores the spatial graph as:
+        adata.obsp["spatial_connectivities"]
+
+    If users pass connectivity_key="spatial", this function will look for
+    "spatial_connectivities". If users directly pass "spatial_connectivities",
+    it will also work.
+    """
+    if connectivity_key is None:
+        connectivity_key = "spatial"
+
+    # Case 1: user directly provides the obsp key
+    if connectivity_key in adata.obsp:
+        return connectivity_key
+
+    # Case 2: user provides Squidpy key_added prefix, e.g. "spatial"
+    candidate = f"{connectivity_key}_connectivities"
+    if candidate in adata.obsp:
+        return candidate
+
+    raise KeyError(
+        f"Cannot find Squidpy spatial connectivity graph in adata.obsp. "
+        f"Tried '{connectivity_key}' and '{candidate}'. "
+        f"Available obsp keys: {list(adata.obsp.keys())}. "
+        f"For multi-slice data, please precompute the graph using "
+        f"squidpy.gr.spatial_neighbors(..., library_key=..., key_added='{connectivity_key}')."
+    )
+
+
+def _edge_index_from_squidpy_obsp(
+    adata,
+    connectivity_key: str = "spatial",
+) -> torch.LongTensor:
+    """
+    Build edge_index from a Squidpy-generated spatial connectivity matrix.
+
+    Expected input:
+        adata.obsp["spatial_connectivities"]
+    or:
+        adata.obsp[f"{connectivity_key}_connectivities"]
+
+    Returns:
+        edge_index: torch.LongTensor with shape [2, num_edges]
+    """
+    obsp_key = _resolve_squidpy_connectivity_key(adata, connectivity_key)
+
+    adj = adata.obsp[obsp_key]
+
+    # Ensure sparse matrix
+    if not sps.issparse(adj):
+        adj = sps.csr_matrix(adj)
+
+    # Convert to boolean adjacency
+    adj = adj.astype(bool)
+
+    # Convert to LIL for efficient diagonal modification
+    if isinstance(adj, sps.csr_matrix):
+        adj = adj.tolil()
+    else:
+        adj = adj.tolil()
+
+    # Remove self-loops
+    adj.setdiag(0)
+
+    # Back to CSR and remove explicit zeros
+    adj = adj.tocsr()
+    adj.eliminate_zeros()
+
+    # Extract nonzero indices
+    row, col = adj.nonzero()
+
+    edge_index = torch.tensor(
+        np.array([row, col]),
+        dtype=torch.long,
+    )
+
+    logging.info(
+        f"Using precomputed Squidpy graph from adata.obsp['{obsp_key}']: "
+        f"{adata.n_obs} nodes, {edge_index.shape[1]} edges."
+    )
+
+    return edge_index
 
 def load_data(
     data_path: str,
@@ -47,6 +133,9 @@ def load_data(
     k_neighborhood: int,
     hvg: bool,
     n_hvg: int,
+    multi_slice: bool = False,
+    connectivity_key: str = "spatial",
+    embedding_key: Optional[str] = None,
 ) -> Tuple[torch.FloatTensor, torch.LongTensor, np.ndarray, Any, int, Optional[torch.FloatTensor]]:
     """
     Load AnnData from .h5ad, build node features, edge index, and labels.
@@ -60,6 +149,9 @@ def load_data(
         radius: Radius threshold (if not None) for radius graph.
         k_neighborhood: Number of neighbors for kNN graph if radius is None.
         hvg: Whether to select highly variable genes for expression.
+        multi_slice: bool = False,
+        connectivity_key: str = "spatial",
+        embedding_key: Optional[str] = None,
 
     Returns:
         x: Node feature matrix (one-hot or expr) as FloatTensor.
@@ -72,50 +164,180 @@ def load_data(
     # 1) Read AnnData
     path = os.path.join(data_path, f"{dataset}.h5ad")
     adata = sc.read_h5ad(path).copy()
+    
 
     # 2) Build phenotype one-hot features
-    pheno = adata.obs[phenoLabels].astype(str)
-    ph_le = LabelEncoder().fit(pheno)
-    ph_idx = ph_le.transform(pheno)
-    onehot = torch.nn.functional.one_hot(
-        torch.from_numpy(ph_idx), num_classes=len(ph_le.classes_)
-    ).float()
+    valid_embedding_types = ["pheno_expr", "pheno", "expr", "embedding"]
+    if embedding_type not in valid_embedding_types:
+        raise ValueError(
+            f"Unknown embedding_type: {embedding_type}. "
+            f"Expected one of {valid_embedding_types}."
+        )
+    # 3) Build phenotype one-hot features only when needed
+    onehot = None
 
-    # 3) Build graph edge_index
-    if "edgeList" in adata.uns:
-        edge_np = np.array(adata.uns["edgeList"])
-        edge_index = torch.from_numpy(edge_np).long()
-        edge_index = to_undirected(edge_index)
-    else:
-        # choose coords
-        if "spatial" in adata.obsm and adata.obsm["spatial"] is not None:
-            coords = adata.obsm["spatial"]
-            # coords = adata.obs[["x", "y"]].to_numpy() # spleen
-        else:
-            coords = adata.obs[["x", "y"]].to_numpy()
+    if embedding_type in ["pheno", "pheno_expr"]:
+        if phenoLabels is None:
+            raise ValueError(
+                "phenoLabels is required when embedding_type is "
+                f"'{embedding_type}', but got phenoLabels=None."
+            )
 
-        if radius is not None:
-            nbrs = NearestNeighbors(radius=radius).fit(coords)
-            _, idxs = nbrs.radius_neighbors(coords)
-            rows = np.concatenate([np.full(len(n), i) for i, n in enumerate(idxs)])
-            cols = np.concatenate(idxs)
-        else:
-            nbrs = NearestNeighbors(n_neighbors=k_neighborhood+1).fit(coords)
-            _, idxs = nbrs.kneighbors(coords)
-            rows = np.repeat(np.arange(coords.shape[0]), k_neighborhood)
-            cols = idxs[:, 1:].flatten()
+        if phenoLabels not in adata.obs:
+            raise KeyError(
+                f"phenoLabels='{phenoLabels}' was not found in adata.obs. "
+                f"Available obs columns: {list(adata.obs.columns)}"
+            )
 
-        mat = coo_matrix((np.ones_like(rows), (rows, cols)),
-                         shape=(coords.shape[0], coords.shape[0]))
-        mat = mat + mat.T  # make undirected
-        edge_index = torch.from_numpy(np.vstack(mat.nonzero()).astype(np.int64))
+        pheno = adata.obs[phenoLabels].astype(str)
+        ph_le = LabelEncoder().fit(pheno)
+        ph_idx = ph_le.transform(pheno)
+
+        onehot = torch.nn.functional.one_hot(
+            torch.from_numpy(ph_idx),
+            num_classes=len(ph_le.classes_)
+        ).float()
         
-        neighbors_count = np.array([len(neighbors) for neighbors in idxs])
-        average_neighbors = neighbors_count.mean()
-        logging.info(f"Average number of neighbors per node: {average_neighbors}")
-        # print(f"================ Average number of neighbors per node: {average_neighbors} ================")
+        
+    # 4) Prepare expression matrix if needed
+    expr = None
 
-    # 4) Encode true labels from nicheLabels if provided
+    if embedding_type in ["pheno_expr", "expr"]:
+        temp_adata = adata.copy()
+        if hvg:
+            sc.pp.highly_variable_genes(
+                temp_adata,
+                flavor="seurat_v3",
+                n_top_genes=n_hvg,
+            )
+            sc.pp.normalize_total(temp_adata, target_sum=1e4)
+            sc.pp.log1p(temp_adata)
+            temp_adata = temp_adata[:, temp_adata.var["highly_variable"]].copy()
+
+        mat = temp_adata.X
+
+        if scipy.sparse.isspmatrix(mat):
+            arr = mat.toarray()
+        else:
+            arr = np.asarray(mat)
+
+        expr = torch.from_numpy(arr).float()
+        del temp_adata
+        
+    # 5) For embedding_type="embedding", load features from adata.obsm[embedding_key]
+    embedding = None
+
+    if embedding_type == "embedding":
+        if embedding_key is None:
+            raise ValueError(
+                "embedding_key is required when embedding_type='embedding'. "
+                "Please provide the key of the embedding stored in adata.obsm, "
+                "for example embedding_key='X_scVI' or embedding_key='X_pca'."
+            )
+
+        if embedding_key not in adata.obsm:
+            raise KeyError(
+                f"embedding_key='{embedding_key}' was not found in adata.obsm. "
+                f"Available obsm keys: {list(adata.obsm.keys())}"
+            )
+
+        emb_arr = adata.obsm[embedding_key]
+
+        if scipy.sparse.isspmatrix(emb_arr):
+            emb_arr = emb_arr.toarray()
+        else:
+            emb_arr = np.asarray(emb_arr)
+
+        if emb_arr.ndim != 2:
+            raise ValueError(
+                f"adata.obsm['{embedding_key}'] must be a 2D matrix, "
+                f"but got shape {emb_arr.shape}."
+            )
+
+        if emb_arr.shape[0] != adata.n_obs:
+            raise ValueError(
+                f"adata.obsm['{embedding_key}'] has {emb_arr.shape[0]} rows, "
+                f"but adata has {adata.n_obs} cells."
+            )
+
+        embedding = torch.from_numpy(emb_arr).float()
+    
+        
+    # 6) Build graph edge_index
+    if multi_slice:
+        logging.warning(
+            "multi_slice=True detected. "
+            "For multi-slice or multi-sample data, CellNiche expects a precomputed "
+            "sample-aware spatial graph generated by Squidpy"
+        )
+
+        edge_index = _edge_index_from_squidpy_obsp(
+            adata,
+            connectivity_key=connectivity_key,
+        )
+
+    else:
+        # Original single-slice logic
+        if "edgeList" in adata.uns:
+            edge_np = np.array(adata.uns["edgeList"])
+
+            # Support both shape [2, E] and [E, 2]
+            if edge_np.ndim != 2:
+                raise ValueError("adata.uns['edgeList'] must be a 2D array.")
+
+            if edge_np.shape[0] == 2:
+                edge_index = torch.from_numpy(edge_np).long()
+            elif edge_np.shape[1] == 2:
+                edge_index = torch.from_numpy(edge_np.T).long()
+            else:
+                raise ValueError(
+                    "adata.uns['edgeList'] should have shape [2, E] or [E, 2]."
+                )
+
+            edge_index = to_undirected(edge_index)
+
+        else:
+            # choose coords
+            if "spatial" in adata.obsm and adata.obsm["spatial"] is not None:
+                coords = adata.obsm["spatial"]
+            else:
+                coords = adata.obs[["x", "y"]].to_numpy()
+
+            if radius is not None:
+                nbrs = NearestNeighbors(radius=radius).fit(coords)
+                _, idxs = nbrs.radius_neighbors(coords)
+
+                rows_list, cols_list = [], []
+                for i, neighbors in enumerate(idxs):
+                    # remove self-loop
+                    neighbors = neighbors[neighbors != i]
+                    rows_list.extend([i] * len(neighbors))
+                    cols_list.extend(neighbors.tolist())
+
+                rows = np.asarray(rows_list)
+                cols = np.asarray(cols_list)
+
+            else:
+                nbrs = NearestNeighbors(n_neighbors=k_neighborhood + 1).fit(coords)
+                _, idxs = nbrs.kneighbors(coords)
+
+                rows = np.repeat(np.arange(coords.shape[0]), k_neighborhood)
+                cols = idxs[:, 1:].flatten()
+
+            mat = coo_matrix(
+                (np.ones_like(rows), (rows, cols)),
+                shape=(coords.shape[0], coords.shape[0]),
+            )
+            mat = mat + mat.T  # make undirected
+            edge_index = torch.from_numpy(
+                np.vstack(mat.nonzero()).astype(np.int64)
+            )
+
+            neighbors_count = np.array([len(neighbors) for neighbors in idxs])
+            average_neighbors = neighbors_count.mean()
+            logging.info(f"Average number of neighbors per node: {average_neighbors}")
+
+    # 7) Encode true labels from nicheLabels if provided
     if nicheLabels is not None and nicheLabels in adata.obs:
         true_vals = adata.obs[nicheLabels].astype(str)
         nl_encoder = LabelEncoder().fit(true_vals)
@@ -126,46 +348,40 @@ def load_data(
         y = np.zeros(adata.n_obs, dtype=int)
         n_classes = 1
 
-    # 5) Prepare expression matrix if needed
-    expr: Optional[torch.FloatTensor] = None
-    if embedding_type in ("pheno_expr", "expr"):
-        if hvg:
-            # select HVGs, normalize & log
-            sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=256)
-            sc.pp.normalize_total(adata, target_sum=1e4)
-            sc.pp.log1p(adata)
-            adata = adata[:, adata.var["highly_variable"]]
-
-        mat = adata.X
-        if scipy.sparse.isspmatrix(mat):
-            arr = mat.toarray()
-        else:
-            arr = np.array(mat)
-        expr = torch.from_numpy(arr).float()
-
-    # logging.info(
-    #     f"Loaded {dataset}: " f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, {onehot.shape[0].shape[-1]} features"
-    # )
     
-    # 6) Return according to embedding type
+    # 8) Return according to embedding type
     if embedding_type == "pheno_expr":
         logging.info(
-            f"Loaded {dataset}: " f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, {onehot.shape[-1]} features"
+            f"Loaded {dataset}: "
+            f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, "
+            f"{onehot.shape[-1]} phenotype features, "
+            f"{expr.shape[-1]} expression features"
         )
-        # return torch.tensor(onehot, dtype=torch.float), edge_index, y, adata, n_classes, torch.tensor(expr, dtype=torch.float)
         return to_float_tensor(onehot), edge_index, y, adata, n_classes, to_float_tensor(expr)
+
     elif embedding_type == "pheno":
         logging.info(
-            f"Loaded {dataset}: " f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, {onehot.shape[-1]} features"
+            f"Loaded {dataset}: "
+            f"{onehot.shape[0]} nodes, {edge_index.shape[1]} edges, "
+            f"{onehot.shape[-1]} phenotype features"
         )
         return to_float_tensor(onehot), edge_index, y, adata, n_classes, None
+
     elif embedding_type == "expr":
         logging.info(
-            f"Loaded {dataset}: " f"{expr.shape[0]} nodes, {edge_index.shape[1]} edges, {expr.shape[-1]} features"
+            f"Loaded {dataset}: "
+            f"{expr.shape[0]} nodes, {edge_index.shape[1]} edges, "
+            f"{expr.shape[-1]} expression features"
         )
-        return to_float_tensor(onehot), edge_index, y, adata, n_classes, None
-    else:
-        raise ValueError(f"Unknown embedding_type: {embedding_type}")
+        return to_float_tensor(expr), edge_index, y, adata, n_classes, None
+    
+    elif embedding_type == "embedding":
+        logging.info(
+            f"Loaded {dataset}: "
+            f"{embedding.shape[0]} nodes, {edge_index.shape[1]} edges, "
+            f"{embedding.shape[-1]} embedding features from adata.obsm['{embedding_key}']"
+        )
+        return to_float_tensor(embedding), edge_index, y, adata, n_classes, None
 
 def setup_seed(seed: int) -> None:
     """

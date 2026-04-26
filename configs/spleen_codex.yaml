@@ -9,6 +9,8 @@ embedding_type: "pheno_expr"        # Options: "pheno_expr" | "pheno" | "expr"
                                     #   pheno_expr : use both phenotype & expression
                                     #   pheno      : use phenotype only
                                     #   expr       : use expression only
+                                    #   embedding  : use adata.obsm[embedding_key] as input features
+embedding_key: null   
 
 hvg: false                          # Select highly‑variable genes (HVGs) or not
 n_hvg: 256                          # Number of HVGs if hvg == true

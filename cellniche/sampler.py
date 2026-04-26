@@ -8,7 +8,7 @@ from torch_sparse import SparseTensor
 from typing import Union, List, Optional, Callable
 import numpy as np
 
-from node2vec import Node2Vec
+# from node2vec import Node2Vec
 import networkx as nx
 
 
@@ -143,33 +143,37 @@ class NeighborSampler(torch.utils.data.DataLoader):
         # Stage 2: Biased/Unbiased random walk
         # -------------------------------
         batch_size = batch.shape[0]
-        if biased_random_walk == True:
-            walks_file = os.path.join("./results/walsk/", "node2vec_walks.pkl")
-            if os.path.exists(walks_file):
-                print(f"Found precomputed walks at {walks_file}, loading...")
-                with open(walks_file, "rb") as f:
-                    walks = pickle.load(f)
-            else:
-                print(f"No precomputed walks found. Computing full graph walks...")
-                full_graph = self._create_graph_from_adj(self.adj)
-                node2vec = Node2Vec(full_graph, walk_length=self.wl, num_walks=self.wt, p=self.p, q=self.q, workers=8)
-                walks = node2vec.walks
-                with open(walks_file, "wb") as f:
-                    pickle.dump(walks, f)
-                print(f"Walks saved to {walks_file}")
+        if biased_random_walk:
+            raise NotImplementedError(
+                "biased_random_walk=True is not supported in the current release. "
+                "Please use biased_random_walk=False."
+            )
+            # walks_file = os.path.join("./results/walsk/", "node2vec_walks.pkl")
+            # if os.path.exists(walks_file):
+            #     print(f"Found precomputed walks at {walks_file}, loading...")
+            #     with open(walks_file, "rb") as f:
+            #         walks = pickle.load(f)
+            # else:
+            #     print(f"No precomputed walks found. Computing full graph walks...")
+            #     full_graph = self._create_graph_from_adj(self.adj)
+            #     node2vec = Node2Vec(full_graph, walk_length=self.wl, num_walks=self.wt, p=self.p, q=self.q, workers=8)
+            #     walks = node2vec.walks
+            #     with open(walks_file, "wb") as f:
+            #         pickle.dump(walks, f)
+            #     print(f"Walks saved to {walks_file}")
 
-            node2vec_walks = [list(map(int, walk)) for walk in walks]
-            rw2 = torch.tensor(node2vec_walks, dtype=torch.long)
-            batch_set = set(batch.tolist())
-            mask = []
-            for i in range(rw2.size(0)):
-                row_nodes = rw2[i].tolist()
-                if row_nodes[0] in batch_set:
-                    mask.append(True)
-                else:
-                    mask.append(False)
-            mask = torch.tensor(mask, dtype=torch.bool)
-            rw2 = rw2[mask]
+            # node2vec_walks = [list(map(int, walk)) for walk in walks]
+            # rw2 = torch.tensor(node2vec_walks, dtype=torch.long)
+            # batch_set = set(batch.tolist())
+            # mask = []
+            # for i in range(rw2.size(0)):
+            #     row_nodes = rw2[i].tolist()
+            #     if row_nodes[0] in batch_set:
+            #         mask.append(True)
+            #     else:
+            #         mask.append(False)
+            # mask = torch.tensor(mask, dtype=torch.bool)
+            # rw2 = rw2[mask]
 
         else:
             batch_repeat = batch.repeat(self.wt)

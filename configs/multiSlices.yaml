@@ -1,0 +1,148 @@
+# ============================================================
+#  CellNiche multi-slice training config
+# ============================================================
+
+# ------------------------------------------------------------
+#  DATA & PRE-PROCESSING
+# ------------------------------------------------------------
+data_path: "/share/home/liangzhongming/phd_code/ModelTest/CellNiche/data/"
+dataset: "mergedAtlas1234_4slices_subsampled10percent"
+
+# Cell identity label in adata.obs.
+# Required when embedding_type is "pheno" or "pheno_expr".
+# Not required when embedding_type is "expr".
+phenoLabels: null
+
+# Ground-truth niche / region label in adata.obs.
+# Optional. Set to null if no ground-truth annotation is available.
+nicheLabels: null
+
+# Input feature mode:
+#   "pheno"      : use one-hot encoded phenoLabels as input features
+#   "expr"       : use adata.X as input features
+#   "pheno_expr" : use phenoLabels as model input and adata.X for expression-based positive-pair construction
+#   "embedding"  : use adata.obsm[embedding_key] as input features
+embedding_type: "expr"
+embedding_key: null   
+
+# Expression preprocessing.
+# If hvg is true, CellNiche will run:
+#   sc.pp.highly_variable_genes(..., n_top_genes=n_hvg)
+#   sc.pp.normalize_total(..., target_sum=1e4)
+#   sc.pp.log1p(...)
+#
+
+hvg: true
+n_hvg: 32
+
+
+# ------------------------------------------------------------
+#  MULTI-SLICE GRAPH INPUT
+# ------------------------------------------------------------
+# For multi-slice data, please precompute a sample-aware spatial graph
+# before running CellNiche, for example:
+#
+#   sq.gr.spatial_neighbors(
+#       adata_concat,
+#       library_key="sample",
+#       coord_type="generic",
+#       delaunay=True,
+#       spatial_key="spatial",
+#       percentile=99,
+#   )
+#
+# This creates:
+#   adata.obsp["spatial_connectivities"]
+#   adata.obsp["spatial_distances"]
+#
+# CellNiche will read adata.obsp[f"{connectivity_key}_connectivities"].
+multi_slice: true
+connectivity_key: "spatial"
+
+# These parameters are only used when multi_slice is false and CellNiche
+# constructs the spatial graph from coordinates.
+# They are ignored when multi_slice is true.
+k_neighborhood: null
+radius: null
+
+
+# ------------------------------------------------------------
+#  SAMPLING & TRAINING
+# ------------------------------------------------------------
+# These three parameters greatly affect the training effect of the model. 
+# Experience requires that at least one epoch/10+ steps be trained. 
+# For example, a large data set (millions of cells) only needs one epoch to have enough iterative updates, 
+batch_size: 512                     # Limited by CPU/GPU memory
+epochs: 2                           # Total passes over the dataset
+max_steps: null                     # Fixed number of steps
+
+lr: 0.001
+weight_decay: 0.0
+dropout: 0.0
+
+
+# ------------------------------------------------------------
+#  MODEL ARCHITECTURE
+# ------------------------------------------------------------
+hidden_channels: [512, 256]
+
+# Neighbor sampling sizes for each GNN layer.
+# [10, 10] means two-hop sampling with up to 10 neighbors per hop.
+size: [10, 10]
+
+# Optional projection head and decoder.
+# Keep null for the default lightweight contrastive model.
+projection: null
+decoder: null
+
+
+# ------------------------------------------------------------
+#  CONTRASTIVE LEARNING
+# ------------------------------------------------------------
+tau: 0.1
+negative_slope: 0.5
+
+# Positive-pair strategy:
+#   "freq" : spatial co-localization based on random-walk frequency
+#   "sim"  : molecular similarity based on expression
+#   "and"  : intersection of freq and sim
+#   "or"   : union of freq and sim
+#
+# For the first multi-slice tutorial, "freq" is recommended because it
+# directly demonstrates spatial co-localization learning.
+strategy: "freq"
+
+use_weight: false
+pos_weight_strategy: "inverse_sim"
+neg_weight_strategy: "inverse_sim"
+
+
+# ------------------------------------------------------------
+#  RANDOM WALK FOR LOCAL MICROENVIRONMENT SAMPLING
+# ------------------------------------------------------------
+# wt: number of walks per seed cell
+# wl: walk length
+#
+# Larger values capture broader local context but increase computation.
+wt: 30
+wl: 5
+
+# Node2Vec-style parameters. Currently not enabled by default in the standard path,
+# but kept for compatibility.
+p: 0.25
+q: 4.0
+
+
+# ------------------------------------------------------------
+#  OUTPUT & LOGGING
+# ------------------------------------------------------------
+seed: 0
+
+save: false
+save_path: "./results"
+
+# Set metrics to false when nicheLabels is null.
+metrics: false
+refine: false
+
+verbose: true

@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CellNiche"
-version = "0.1.5"
+version = "0.1.6"
 description = "CellNiche represents cellular microenvironments in atlas-scale spatial omics data with contrastive learning"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 license = {file = "LICENSE"}
 authors = [
   {name = "Zhongming Liang", email = "liangzhongming21@mails.ucas.ac.cn"},
@@ -28,9 +28,9 @@ dependencies = [
   "pandas>=2.0.3",
   "tqdm>=4.67.1",
   "networkx>=3.1",
-  "node2vec>=0.5.0",
   "h5py>=3.11.0",
   "natsort>=8.4.0",
+  "pyyaml>=6.0",
 ]
 
 classifiers = [

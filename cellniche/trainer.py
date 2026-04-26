@@ -1,6 +1,6 @@
 import time
 import logging
-
+import os
 import random
 import numpy as np
 import torch
@@ -32,14 +32,18 @@ def run(args):
     x, edge_index, y, adata, n_classes, expr = load_data(
         data_path=args.data_path,
         dataset=args.dataset,
-        phenoLabels=args.phenoLabels,
-        nicheLabels=args.nicheLabels,
+        phenoLabels=getattr(args, "phenoLabels", None),
+        nicheLabels=getattr(args, "nicheLabels", None),
         embedding_type=args.embedding_type,
         radius=args.radius,
         k_neighborhood=args.k_neighborhood,
         hvg=args.hvg,
         n_hvg=args.n_hvg,
+        multi_slice=getattr(args, "multi_slice", False),
+        connectivity_key=getattr(args, "connectivity_key", "spatial"),
+        embedding_key=getattr(args, "embedding_key", None),
     )
+    
     x = x.to(device)
     if expr is not None:
         expr = expr.to(device)
@@ -195,10 +199,18 @@ def run(args):
 
     # Clustering and metrics
     if args.metrics:
-        adata, metrics = clustering_st(adata, n_classes, z_all, y, refine=args.refine)
-        logging.info(f"Clustering metrics: {metrics}")
+        if n_classes <= 1:
+            logging.warning(
+                "metrics=True but no valid nicheLabels were provided. "
+                "Skip clustering metric calculation."
+            )
+        else:
+            adata, metrics = clustering_st(adata, n_classes, z_all, y, refine=args.refine)
+            logging.info(f"Clustering metrics: {metrics}")
+    
     # Save results
     if args.save:
+        os.makedirs(args.save_path, exist_ok=True)
         output_file = f"{args.save_path}/{args.dataset}_emb_{args.embedding_type}.h5ad"
         adata.write_h5ad(output_file)
         logging.info(f"Saved embeddings to {output_file}")
