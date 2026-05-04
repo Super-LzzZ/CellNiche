@@ -64,6 +64,8 @@ CellNiche for single-slice
 * [CellNiche's demonstration on cortex osmFISH data](tutorial/cortex.ipynb)
 * [CellNiche's demonstration on mouse_spleen CODEX data](tutorial/spleen.ipynb)
 * [CellNiche's demonstration on mouse_brain STAPmap data](tutorial/brain_STARmap.ipynb)
+* [CellNiche's demonstration on CosMxMouseBrain data](tutorial/CosMxMouseBrain.ipynb)
+* [CellNiche's demonstration on simulation data](tutorial/simulation.ipynb)
 
 CellNiche for integrated multiple slices from the same experiment
 * [CellNiche's demonstration on NSCLC data](tutorial/NSCLC.ipynb)
