@@ -20,7 +20,13 @@ from sklearn.metrics import (
     adjusted_mutual_info_score,
     f1_score,
     silhouette_score,
+    
+    homogeneity_score,
+    v_measure_score,
+    fowlkes_mallows_score
 )
+
+
 from torch_sparse import SparseTensor
 from torch_geometric.utils import to_undirected
 
@@ -49,7 +55,7 @@ def _resolve_squidpy_connectivity_key(adata, connectivity_key: str = "spatial") 
     it will also work.
     """
     if connectivity_key is None:
-        connectivity_key = "spatial"
+        connectivity_key = "connectivities"
 
     # Case 1: user directly provides the obsp key
     if connectivity_key in adata.obsp:
@@ -205,6 +211,16 @@ def load_data(
     if embedding_type in ["pheno_expr", "expr"]:
         temp_adata = adata.copy()
         if hvg:
+            # # way 1
+            # logging.info(f"hvg way1")
+            # sc.pp.highly_variable_genes(temp_adata, n_top_genes=n_hvg, flavor='seurat_v3')
+            # temp_adata = temp_adata[:,temp_adata.var.highly_variable]
+            # temp_adata.raw=adata
+            # sc.pp.normalize_total(temp_adata, target_sum=1e4,inplace=True)
+            # sc.pp.log1p(temp_adata)
+            # sc.pp.scale(temp_adata)
+            
+            # way 2
             sc.pp.highly_variable_genes(
                 temp_adata,
                 flavor="seurat_v3",
@@ -603,6 +619,10 @@ def clustering_st(
             f1m = f1_score(true_labels, aligned, average='macro')
             f1i = f1_score(true_labels, aligned, average='micro')
             sil = silhouette_score(feats, true_labels)
+            
+            FMI = fowlkes_mallows_score(true_labels, aligned)
+            v_measure = v_measure_score(true_labels, aligned)
+            homogeneity = homogeneity_score(true_labels, aligned)
 
             metrics_results[method] = {
                 'Acc': acc,
@@ -612,6 +632,9 @@ def clustering_st(
                 'F1 Macro': f1m,
                 'F1 Micro': f1i,
                 'Silhouette': sil,
+                'Fowlkes-Mallows': FMI,
+                'V-Measure': v_measure,
+                'Homogeneity': homogeneity
             }
     
     return adata, metrics_results    

@@ -54,8 +54,8 @@ negative_slope: 0.5                 # LeakyReLU slope for similarity threshold
 strategy: "freq"                    # Positive‑pair definition
                                     #   "freq" : co‑localisation
                                     #   "sim"  : co‑expression          (requires expr)
-                                    #   "and"  : intersection of both   (requires pheno_expr)
-                                    #   "or"   : union of both          (requires pheno_expr)
+                                    #   "and"  : intersection of both   (requires expr)
+                                    #   "or"   : union of both          (requires expr)
 
 use_weight: false                   # Hard‑sample aware weighting
 #  "inverse_freq" means that when positive and negative samples are defined by co-expression, the learning of those co-localization high-weight samples in the positive samples is enhanced (enhancing weak positive samples)

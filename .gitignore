@@ -20,3 +20,8 @@ dist/
 # Environment
 .env
 .venv/
+
+# Local data and outputs
+results/
+data/mergedAtlas1234_4slices_inner.h5ad
+EOF

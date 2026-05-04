@@ -5,8 +5,8 @@
 # ------------------------------------------------------------
 #  DATA & PRE-PROCESSING
 # ------------------------------------------------------------
-data_path: "/share/home/liangzhongming/phd_code/ModelTest/CellNiche/data/"
-dataset: "mergedAtlas1234_4slices_subsampled10percent"
+data_path: "/share/home/liangzhongming/phd_code/st_data/SpaLPdata/640,000-simulated-data/"
+dataset: "sim"
 
 # Cell identity label in adata.obs.
 # Required when embedding_type is "pheno" or "pheno_expr".
@@ -15,7 +15,7 @@ phenoLabels: null
 
 # Ground-truth niche / region label in adata.obs.
 # Optional. Set to null if no ground-truth annotation is available.
-nicheLabels: null
+nicheLabels: 'ann_level_3'
 
 # Input feature mode:
 #   "pheno"      : use one-hot encoded phenoLabels as input features
@@ -33,7 +33,7 @@ embedding_key: null
 #
 
 hvg: true
-n_hvg: 32
+n_hvg: 256
 
 
 # ------------------------------------------------------------
@@ -56,13 +56,13 @@ n_hvg: 32
 #   adata.obsp["spatial_distances"]
 #
 # CellNiche will read adata.obsp[f"{connectivity_key}_connectivities"].
-multi_slice: true
-connectivity_key: "spatial"
+multi_slice: false
+connectivity_key: "connectivities"
 
 # These parameters are only used when multi_slice is false and CellNiche
 # constructs the spatial graph from coordinates.
 # They are ignored when multi_slice is true.
-k_neighborhood: null
+k_neighborhood: 5
 radius: null
 
 
@@ -99,7 +99,7 @@ decoder: null
 # ------------------------------------------------------------
 #  CONTRASTIVE LEARNING
 # ------------------------------------------------------------
-tau: 0.1
+tau: 0.5
 negative_slope: 0.5
 
 # Positive-pair strategy:
@@ -126,7 +126,7 @@ neg_weight_strategy: "inverse_sim"
 # wl: walk length
 #
 # Larger values capture broader local context but increase computation.
-wt: 30
+wt: 20
 wl: 5
 
 # Node2Vec-style parameters. Currently not enabled by default in the standard path,
@@ -138,13 +138,13 @@ q: 4.0
 # ------------------------------------------------------------
 #  OUTPUT & LOGGING
 # ------------------------------------------------------------
-seed: 0
+seed: null
 
 save: false
 save_path: "./results"
 
 # Set metrics to false when nicheLabels is null.
-metrics: false
+metrics: true
 refine: false
 
 verbose: true
